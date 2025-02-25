@@ -1,22 +1,32 @@
 package com.telegram.bilavorona.controler;
 
 import com.telegram.bilavorona.config.BotConfig;
+import com.telegram.bilavorona.config.MyBotSender;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.bots.DefaultBotOptions;
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
+import org.telegram.telegrambots.meta.generics.BotOptions;
+import org.telegram.telegrambots.meta.generics.LongPollingBot;
 
 @Slf4j
 @Component
-public class BilaVoronaBot extends TelegramLongPollingBot {
+public class BilaVoronaBot implements LongPollingBot {
     private final BotConfig config;
+    private final BotCommandHandler botCommandHandler;
+    private final MyBotSender botSender;
 
     @Autowired
-    public BilaVoronaBot(BotConfig config) {
+    public BilaVoronaBot(BotConfig config, BotCommandHandler botCommandHandler, MyBotSender botSender) {
         this.config = config;
+        this.botCommandHandler = botCommandHandler;
+        this.botSender = botSender;
     }
 
 
@@ -24,28 +34,23 @@ public class BilaVoronaBot extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
-            long chatId = update.getMessage().getChatId();
+            Message msg = update.getMessage();
 
+            SendMessage answerMessage;
             switch (messageText) {
-                case "/start" -> showStart(chatId);
-                case "/help" -> sendMessage(chatId, "Here are the available commands:\n/start - Start the bot\n/help - Get help");
-                default -> sendMessage(chatId, "Unknown command. Use /help to see available commands.");
+                case "/start" -> answerMessage = botCommandHandler.start(msg);
+                case "/help" ->  answerMessage = botCommandHandler.help(msg);
+                default -> answerMessage = botCommandHandler.defaultCom(msg);
             }
+            executeMessage(answerMessage);
         }
     }
 
-    private void showStart(long chatId) {
-        sendMessage(chatId, "Welcome to BilaVorona Bot! Use /help for more info.");
-    }
-
-    private void sendMessage(long chatId, String text) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId);
-        message.setText(text);
+    private void executeMessage(BotApiMethod<?> message) {
         try {
-            execute(message);
+            botSender.execute(message);
         } catch (TelegramApiException e) {
-            log.error("Failed to send message: {}", e.getMessage());
+            log.error("Failed to execute message: {}", e.getMessage());
         }
     }
 
@@ -58,5 +63,15 @@ public class BilaVoronaBot extends TelegramLongPollingBot {
     @Override
     public String getBotToken() {
         return config.getToken();
+    }
+
+    @Override
+    public DefaultBotOptions getOptions() {
+        return new DefaultBotOptions();
+    }
+
+    @Override
+    public void clearWebhook() throws TelegramApiRequestException {
+
     }
 }
