@@ -12,7 +12,6 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
-import org.telegram.telegrambots.meta.generics.BotOptions;
 import org.telegram.telegrambots.meta.generics.LongPollingBot;
 
 @Slf4j
@@ -29,17 +28,33 @@ public class BilaVoronaBot implements LongPollingBot {
         this.botSender = botSender;
     }
 
-
     @Override
     public void onUpdateReceived(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
-            String messageText = update.getMessage().getText();
             Message msg = update.getMessage();
-
+            String messageText = msg.getText();
             SendMessage answerMessage;
-            switch (messageText) {
+            String[] commandParts = messageText.split(" ");
+
+            switch (commandParts[0]) {
                 case "/start" -> answerMessage = botCommandHandler.start(msg);
-                case "/help" ->  answerMessage = botCommandHandler.help(msg);
+                case "/help" -> answerMessage = botCommandHandler.help(msg);
+                case "/deleteUser" -> {
+                    if (commandParts.length > 1) {
+                        answerMessage = botCommandHandler.deleteUser(msg, commandParts[1]);
+                    } else {
+                        answerMessage = botCommandHandler.setMessage(msg.getChatId(), "Будь ласка вкажіть юзернейм. Приклад: /deleteUser @username");
+                    }
+                }
+                case "/saveFile" -> {
+                    if (msg.hasDocument()) {
+                        // Check if the message contains a file (document)
+                        answerMessage = botCommandHandler.saveFile(msg);
+                    } else {
+                        // Ask the user to send a file
+                        answerMessage = botCommandHandler.setMessage(msg.getChatId(), "Будь ласка, надішліть документ для збереження.");
+                    }
+                }
                 default -> answerMessage = botCommandHandler.defaultCom(msg);
             }
             executeMessage(answerMessage);

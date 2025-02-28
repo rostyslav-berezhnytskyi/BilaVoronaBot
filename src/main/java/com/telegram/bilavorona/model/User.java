@@ -15,12 +15,12 @@ import lombok.Setter;
 public class User {
     @Id
     private Long chatId;
-    private Boolean embedeJoke;
-    private String phoneNumber;
+    private Long telegramId;
     private java.sql.Timestamp registeredAt;
     private String firstName;
     private String lastName;
     private String userName;
     @Enumerated(EnumType.STRING)
     private Role role;
+    private String languageCode;
 }

@@ -26,15 +26,18 @@ public class UserServiceImpl implements UserService{
     @Override
     public boolean registerUser(Message msg) {
         if(userRepository.findById(msg.getChatId()).isEmpty()) {
+            String languageCode = msg.getFrom().getLanguageCode();
             Long chatId = msg.getChatId();
             Chat chat = msg.getChat();
 
             User user = new User();
+            user.setTelegramId(msg.getFrom().getId());
             user.setChatId(chatId);
             user.setFirstName(chat.getFirstName());
             user.setLastName(chat.getLastName());
             user.setUserName(chat.getUserName());
             user.setRole(Role.USER);
+            user.setLanguageCode(languageCode);
             user.setRegisteredAt(new Timestamp(System.currentTimeMillis()));
 
             userRepository.save(user);
@@ -60,7 +63,20 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
-    public void deleteById(Long id) {
+    public boolean deleteById(Long id) {
         userRepository.deleteById(id);
+        return true;
+    }
+
+    @Override
+    public boolean deleteByUsername(String username) {
+        Optional<User> userOpt = userRepository.findByUserName(username);
+        if(userOpt.isPresent()) {
+            Long chatId = userOpt.get().getChatId();
+            userRepository.deleteById(chatId);
+            return true;
+        } else {
+            return false;
+        }
     }
 }
