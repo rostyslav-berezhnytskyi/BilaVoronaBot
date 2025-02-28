@@ -1,51 +1,47 @@
 package com.telegram.bilavorona.controler;
 
+import com.telegram.bilavorona.config.MyBotSender;
 import com.telegram.bilavorona.model.Role;
 import com.telegram.bilavorona.model.User;
-import com.telegram.bilavorona.service.FileService;
 import com.telegram.bilavorona.service.UserService;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.meta.api.methods.GetFile;
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.Document;
-import org.telegram.telegrambots.meta.api.objects.File;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
 import java.util.Optional;
 
 @Slf4j
 @Service
 public class BotCommandHandlerImpl implements BotCommandHandler {
     private final UserService userService;
-    private final FileService fileService;
+    private final FileHandler fileHandler;
+    private final MyBotSender botSender;
 
     @Autowired
-    public BotCommandHandlerImpl(UserService userService, FileService fileService) {
+    public BotCommandHandlerImpl(UserService userService, FileHandler fileHandler, MyBotSender botSender) {
         this.userService = userService;
-        this.fileService = fileService;
+        this.fileHandler = fileHandler;
+        this.botSender = botSender;
     }
 
     @Override
-    public SendMessage start(Message msg) {
+    public void start(Message msg) {
         String name = msg.getChat().getFirstName();
         log.info("Invoke /start command for user {} in chatId {}", name, msg.getChatId());
         boolean isNewUser = userService.registerUser(msg);
         String greetingForNewUser = "Вітаю , " + name + ", приємно познайомитись! " + EmojiParser.parseToUnicode(":blush:");
         String greetingForOldUser = "Вітаю , " + name + "! " + EmojiParser.parseToUnicode(":wave:");
         String answer =  isNewUser ? greetingForNewUser : greetingForOldUser;
-        return setMessage(msg.getChatId(), answer);
+        sendMessage(msg.getChatId(), answer);
     }
 
     @Override
-    public SendMessage help(Message msg) {
+    public void help(Message msg) {
         log.info("Invoke /help command. Providing help message for user {} in chatId {}", msg.getChat().getUserName(), msg.getChatId());
         String answer = """
                 Команди:
@@ -53,18 +49,24 @@ public class BotCommandHandlerImpl implements BotCommandHandler {
                 /start - вітальне повідомлення
                
                 /help - довідкова інформація
+                
+                /get_all_files - отримати всі файли
+                
+                /delete_user - видаляє вказаного користувача за його юзернеймом з БД (АДМІН)
+                
+                можливість завантажувати файли в БД мають право тільки АДМІНІСТРАТОРИ
                """;;
-        return setMessage(msg.getChatId(), answer);
+        sendMessage(msg.getChatId(), answer);
     }
 
     @Override
-    public SendMessage defaultCom(Message msg) {
+    public void defaultCom(Message msg) {
         log.info("Invoke unknown command. Providing default message for user {} in chatId {}", msg.getChat().getUserName(), msg.getChatId());
         String answer = "Невідома команда. Використовуйте /help, щоб побачити доступні команди.";
-        return setMessage(msg.getChatId(), answer);
+        sendMessage(msg.getChatId(), answer);
     }
 
-    public SendMessage deleteUser(Message msg, String username) {
+    public void deleteUser(Message msg, String username) {
         username = username.startsWith("@") ? username.substring(1) : username;
         Long chatId = msg.getChatId();
         String answer;
@@ -77,52 +79,29 @@ public class BotCommandHandlerImpl implements BotCommandHandler {
         } else {
              answer = "У вас немає дозволу на таку команду";
         }
-        return setMessage(chatId, answer);
+        sendMessage(chatId, answer);
     }
 
     @Override
-    public SendMessage setMessage(Long chatId, String text) {
+    public void sendMessage(Long chatId, String text) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
         message.setText(text);
-        return message;
+        executeMessage(message);
     }
 
     @Override
-    public SendMessage saveFile(Message msg) {
-        if (!msg.hasDocument()) {
-            return setMessage(msg.getChatId(), "❌ Ви не надіслали документ!");
-        }
-
-        Document doc = msg.getDocument();
-        String fileId = doc.getFileId();
-        String fileName = doc.getFileName();
-        Long fileSize = doc.getFileSize();
-        String mimeType = doc.getMimeType();
-        Long uploadedBy = msg.getFrom().getId();
-
-        try {
-            // Отримуємо шлях до файлу
-            GetFile getFile = new GetFile();
-            getFile.setFileId(fileId);
-            File file = botSender.execute(getFile);
-
-            // Завантажуємо файл
-            byte[] fileBytes = downloadFile(file.getFilePath());
-
-            // Зберігаємо у БД через FileService
-            fileService.saveFile(fileName, mimeType, fileSize, fileBytes, uploadedBy);
-
-            return setMessage(msg.getChatId(), "✅ Файл успішно збережено у базі даних!");
-        } catch (TelegramApiException | IOException e) {
-            log.error("Помилка завантаження файлу: {}", e.getMessage());
-            return setMessage(msg.getChatId(), "❌ Не вдалося зберегти файл.");
+    public void saveFile(Message msg) {
+        if(checkRole(msg.getChatId(), new Role[]{Role.OWNER, Role.ADMIN})) {
+            fileHandler.saveFile(msg);
+        } else {
+            sendMessage(msg.getChatId(), "У вас немає дозволу для виконання цієї операції");
         }
     }
 
-    private byte[] downloadFile(String filePath) throws IOException {
-        URL fileUrl = new URL("https://api.telegram.org/file/bot" + botConfig.getToken() + "/" + filePath);
-        return fileUrl.openStream().readAllBytes();
+    @Override
+    public void getAllFiles(Message msg) {
+        fileHandler.getAllFiles(msg);
     }
 
     private boolean checkRole(long chatId, Role[] roles) {
@@ -134,6 +113,15 @@ public class BotCommandHandlerImpl implements BotCommandHandler {
             return false;
         } else {
             return false;
+        }
+    }
+
+
+    private void executeMessage(BotApiMethod<?> message) {
+        try {
+            botSender.execute(message);
+        } catch (TelegramApiException e) {
+            log.error("Failed to execute message: {}", e.getMessage());
         }
     }
 }

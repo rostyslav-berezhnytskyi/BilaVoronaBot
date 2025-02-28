@@ -1,13 +1,13 @@
 package com.telegram.bilavorona.controler;
 
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 
 public interface BotCommandHandler {
-    SendMessage start(Message msg);
-    SendMessage help(Message msg);
-    SendMessage defaultCom(Message msg);
-    SendMessage deleteUser(Message msg, String username);
-    SendMessage setMessage(Long chatId, String text);
-    SendMessage saveFile(Message msg);
+    void start(Message msg);
+    void help(Message msg);
+    void defaultCom(Message msg);
+    void deleteUser(Message msg, String username);
+    void sendMessage(Long chatId, String text);
+    void saveFile(Message msg);
+    void getAllFiles(Message msg);
 }

@@ -6,13 +6,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.DefaultBotOptions;
-import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
+import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 import org.telegram.telegrambots.meta.generics.LongPollingBot;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -26,49 +30,52 @@ public class BilaVoronaBot implements LongPollingBot {
         this.config = config;
         this.botCommandHandler = botCommandHandler;
         this.botSender = botSender;
+        createListOfCommands();
     }
 
     @Override
     public void onUpdateReceived(Update update) {
-        if (update.hasMessage() && update.getMessage().hasText()) {
-            Message msg = update.getMessage();
-            String messageText = msg.getText();
-            SendMessage answerMessage;
-            String[] commandParts = messageText.split(" ");
+        if (!update.hasMessage()) return;
 
+        Message msg = update.getMessage();
+
+        if (msg.hasDocument()) {
+            botCommandHandler.saveFile(msg);
+            return;
+        }
+
+        if (msg.hasText()) {
+            String[] commandParts = msg.getText().split(" ");
             switch (commandParts[0]) {
-                case "/start" -> answerMessage = botCommandHandler.start(msg);
-                case "/help" -> answerMessage = botCommandHandler.help(msg);
-                case "/deleteUser" -> {
+                case "/start" -> botCommandHandler.start(msg);
+                case "/help" -> botCommandHandler.help(msg);
+                case "/delete_user" -> {
                     if (commandParts.length > 1) {
-                        answerMessage = botCommandHandler.deleteUser(msg, commandParts[1]);
+                        botCommandHandler.deleteUser(msg, commandParts[1]);
                     } else {
-                        answerMessage = botCommandHandler.setMessage(msg.getChatId(), "Будь ласка вкажіть юзернейм. Приклад: /deleteUser @username");
+                        botCommandHandler.sendMessage(msg.getChatId(), "Будь ласка вкажіть юзернейм. Приклад: /deleteUser @username");
                     }
                 }
-                case "/saveFile" -> {
-                    if (msg.hasDocument()) {
-                        // Check if the message contains a file (document)
-                        answerMessage = botCommandHandler.saveFile(msg);
-                    } else {
-                        // Ask the user to send a file
-                        answerMessage = botCommandHandler.setMessage(msg.getChatId(), "Будь ласка, надішліть документ для збереження.");
-                    }
-                }
-                default -> answerMessage = botCommandHandler.defaultCom(msg);
+                case "/get_all_files" -> botCommandHandler.getAllFiles(msg);
+                default -> botCommandHandler.defaultCom(msg);
             }
-            executeMessage(answerMessage);
         }
     }
 
-    private void executeMessage(BotApiMethod<?> message) {
+    private void createListOfCommands() {
+        List<BotCommand> listOfCommands = new ArrayList<>();
+        listOfCommands.add(new BotCommand("/start", "Почати роботу з ботом і отримати привітання"));
+//        listOfCommands.add(new BotCommand("/delete_my_data", "видалити мої данні з БД бота - ще не реалізована"));
+        listOfCommands.add(new BotCommand("/help", "отримати інформацію по роботі з ботом"));
+        listOfCommands.add(new BotCommand("/delete_user", "видаляє вказаного користувача за його юзернеймом з БД (АДМІН)"));
+        listOfCommands.add(new BotCommand("/get_all_files", "отримати всі файли"));
         try {
-            botSender.execute(message);
+            botSender.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
+            log.info("Bot commands successfully set.");
         } catch (TelegramApiException e) {
-            log.error("Failed to execute message: {}", e.getMessage());
+            log.error("Error getting bot`s command lis: " + e.getMessage());
         }
     }
-
 
     @Override
     public String getBotUsername() {

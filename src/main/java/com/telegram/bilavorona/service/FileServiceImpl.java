@@ -1,6 +1,6 @@
 package com.telegram.bilavorona.service;
 
-import com.telegram.bilavorona.model.File;
+import com.telegram.bilavorona.model.FileEntity;
 import com.telegram.bilavorona.repository.FileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,18 +16,28 @@ public class FileServiceImpl implements FileService{
     private final FileRepository fileRepository;
 
     @Override
-    public File saveFile(String fileName, String fileType, Long fileSize, byte[] fileData, Long uploadedBy) {
-        File file = new File(fileName, fileType, fileSize, fileData, uploadedBy);
+    public FileEntity saveFile(String fileName, String fileType, Long fileSize, byte[] fileData, Long uploadedBy) {
+        FileEntity file = new FileEntity(fileName, fileType, fileSize, fileData, uploadedBy);
         return fileRepository.save(file);
     }
 
     @Override
-    public Optional<File> getFileById(Long id) {
+    public Optional<FileEntity> getFileById(Long id) {
         return fileRepository.findById(id);
     }
 
     @Override
-    public List<File> getFilesByUser(Long userId) {
+    public Optional<FileEntity> getFileByName(String fileName) {
+        return fileRepository.findByFileName(fileName);
+    }
+
+    @Override
+    public List<FileEntity> getFilesByUser(Long userId) {
         return fileRepository.findByUploadedBy(userId);
+    }
+
+    @Override
+    public List<FileEntity> getAllFiles() {
+        return fileRepository.findAll();
     }
 }
