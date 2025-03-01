@@ -24,7 +24,7 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
-    public boolean registerUser(Message msg) {
+    public boolean saveUser(Message msg) {
         if(userRepository.findById(msg.getChatId()).isEmpty()) {
             String languageCode = msg.getFrom().getLanguageCode();
             Long chatId = msg.getChatId();
@@ -41,15 +41,9 @@ public class UserServiceImpl implements UserService{
             user.setRegisteredAt(new Timestamp(System.currentTimeMillis()));
 
             userRepository.save(user);
-            log.info("user saved: " + user);
             return true;
         }
         return false;
-    }
-
-    @Override
-    public User save(User user) {
-        return userRepository.save(user);
     }
 
     @Override
@@ -60,6 +54,12 @@ public class UserServiceImpl implements UserService{
     @Override
     public Optional<User> findById(Long id) {
         return userRepository.findById(id);
+    }
+
+    @Override
+    public Optional<User> findByUsername(String username) {
+        username = username.startsWith("@") ? username.substring(1) : username;
+        return userRepository.findByUserName(username);
     }
 
     @Override
@@ -74,6 +74,19 @@ public class UserServiceImpl implements UserService{
         if(userOpt.isPresent()) {
             Long chatId = userOpt.get().getChatId();
             userRepository.deleteById(chatId);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean updateUserRole(String username, Role newRole) {
+        Optional<User> userOpt = userRepository.findByUserName(username);
+        if(userOpt.isPresent()) {
+            User user = userOpt.get();
+            user.setRole(newRole);
+            userRepository.save(user);
             return true;
         } else {
             return false;
