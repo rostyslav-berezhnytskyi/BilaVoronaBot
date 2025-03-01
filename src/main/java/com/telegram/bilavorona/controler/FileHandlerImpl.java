@@ -3,6 +3,7 @@ package com.telegram.bilavorona.controler;
 import com.telegram.bilavorona.config.BotConfig;
 import com.telegram.bilavorona.config.MyBotSender;
 import com.telegram.bilavorona.model.FileEntity;
+import com.telegram.bilavorona.model.FileGroup;
 import com.telegram.bilavorona.model.Role;
 import com.telegram.bilavorona.service.FileService;
 import lombok.RequiredArgsConstructor;
@@ -13,12 +14,17 @@ import org.telegram.telegrambots.meta.api.methods.GetFile;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.*;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -52,6 +58,30 @@ public class FileHandlerImpl implements FileHandler {
             saveVideo(msg);
         } else {
             botSender.sendMessage(msg.getChatId(), "❌ Невідомий тип файлу!");
+        }
+
+        // Send message to choose file group
+        sendGroupSelectionButtons(chatId);
+    }
+
+    @Override
+    public void assignFileGroup(CallbackQuery callbackQuery) {
+        String data = callbackQuery.getData();
+        Long chatId = callbackQuery.getMessage().getChatId();
+        String username = callbackQuery.getFrom().getUserName();
+
+        // Extract file group from callback data
+        String groupName = data.replace("file_group_", "");
+        FileGroup selectedGroup = FileGroup.valueOf(groupName);
+
+        // Get the latest file uploaded by this user (assuming we track it)
+        FileEntity file = fileService.getLastUploadedFileByUser(chatId);
+        if (file != null) {
+            file.setFileGroup(selectedGroup);
+            fileService.updateFile(file);
+            botSender.sendMessage(chatId, "✅ Файл віднесено до групи: " + selectedGroup.getDisplayName());
+        } else {
+            botSender.sendMessage(chatId, "❌ Не вдалося знайти файл для оновлення групи.");
         }
     }
 
@@ -106,7 +136,7 @@ public class FileHandlerImpl implements FileHandler {
             byte[] fileBytes = downloadFile(file.getFilePath());
 
             // Save the file to the database via the file service
-            fileService.saveFile(fileName, mimeType, fileSize, fileBytes, uploadedBy);
+            fileService.saveFile(fileName, mimeType, fileSize, fileBytes, uploadedBy, LocalDateTime.now());
 
             botSender.sendMessage(uploadedBy, "✅ Файл успішно збережено у базі даних!");
         } catch (TelegramApiException | IOException e) {
@@ -125,6 +155,7 @@ public class FileHandlerImpl implements FileHandler {
             return inputStream.readAllBytes();
         }
     }
+
 
     @Override
     public void getAllFiles(Message msg) {
@@ -151,5 +182,20 @@ public class FileHandlerImpl implements FileHandler {
                 botSender.sendMessage(msg.getChatId(), "❌ Не вдалося надіслати файл: " + file.getFileName());
             }
         }
+    }
+
+    private void sendGroupSelectionButtons(Long chatId) {
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
+        for (FileGroup group : FileGroup.values()) {
+            InlineKeyboardButton button = new InlineKeyboardButton();
+            button.setText(group.getDisplayName());
+            button.setCallbackData("file_group_" + group.name());
+            rows.add(Collections.singletonList(button));
+        }
+        markup.setKeyboard(rows);
+
+        botSender.sendInlineKeyboardMarkupMessage(chatId, "До якої групи ви хочете віднести цей файл?", markup);
     }
 }

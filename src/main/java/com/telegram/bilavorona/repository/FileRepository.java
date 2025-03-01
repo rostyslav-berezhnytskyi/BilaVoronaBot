@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface FileRepository extends JpaRepository<FileEntity, Long> {
     Optional<FileEntity> findByFileName(String fileName);
     List<FileEntity> findByUploadedBy(Long uploadedBy);
+    FileEntity findTopByUploadedByOrderByUploadedAtDesc(Long userId);
 }

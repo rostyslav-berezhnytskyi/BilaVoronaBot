@@ -40,8 +40,14 @@ public class BilaVoronaBot implements LongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
         log.info("Received update: {}", update);
+
         if (update.hasCallbackQuery()) {
-            userController.handleRoleSelection(update.getCallbackQuery());
+            String data = update.getCallbackQuery().getData();
+            if (data.startsWith("file_group_")) {
+                fileCommandHandler.assignFileGroup(update.getCallbackQuery());
+            } else {
+                userController.handleRoleSelection(update.getCallbackQuery());
+            }
             return;
         }
 

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,8 +17,8 @@ public class FileServiceImpl implements FileService{
     private final FileRepository fileRepository;
 
     @Override
-    public FileEntity saveFile(String fileName, String fileType, Long fileSize, byte[] fileData, Long uploadedBy) {
-        FileEntity file = new FileEntity(fileName, fileType, fileSize, fileData, uploadedBy);
+    public FileEntity saveFile(String fileName, String fileType, Long fileSize, byte[] fileData, Long uploadedBy, LocalDateTime uploadedAt) {
+        FileEntity file = new FileEntity(fileName, fileType, fileSize, fileData, uploadedBy, uploadedAt);
         return fileRepository.save(file);
     }
 
@@ -39,5 +40,15 @@ public class FileServiceImpl implements FileService{
     @Override
     public List<FileEntity> getAllFiles() {
         return fileRepository.findAll();
+    }
+
+    @Override
+    public void updateFile(FileEntity file) {
+        fileRepository.save(file);
+    }
+
+    @Override
+    public FileEntity getLastUploadedFileByUser(Long userId) {
+        return fileRepository.findTopByUploadedByOrderByUploadedAtDesc(userId);
     }
 }
