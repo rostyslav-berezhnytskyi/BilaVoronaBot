@@ -1,6 +1,7 @@
 package com.telegram.bilavorona.service;
 
 import com.telegram.bilavorona.model.FileEntity;
+import com.telegram.bilavorona.model.FileGroup;
 import com.telegram.bilavorona.repository.FileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,4 +52,78 @@ public class FileServiceImpl implements FileService{
     public FileEntity getLastUploadedFileByUser(Long userId) {
         return fileRepository.findTopByUploadedByOrderByUploadedAtDesc(userId);
     }
+
+    @Override
+    public List<FileEntity> getFilesByGroup(FileGroup group) {
+        return fileRepository.findByFileGroup(group);
+    }
+
+    @Override
+    public boolean deleteFileById(Long id) {
+        if (fileRepository.findById(id).isPresent()) {
+            fileRepository.deleteById(id);
+            return true;  // Successfully deleted
+        }
+        return false;  // File not found
+    }
+
+    @Override
+    public boolean deleteFileByName(String fileName) {
+        Optional<FileEntity> fileOpt = fileRepository.findByFileName(fileName);
+        if (fileOpt.isPresent()) {
+            fileRepository.delete(fileOpt.get());
+            return true;  // Successfully deleted
+        }
+        return false;  // File not found
+    }
+
+    @Override
+    public boolean changeFileGroupById(Long id, FileGroup newGroup) {
+        Optional<FileEntity> fileOpt = fileRepository.findById(id);
+        if (fileOpt.isPresent()) {
+            FileEntity file = fileOpt.get();
+            file.setFileGroup(newGroup);
+            fileRepository.save(file);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean changeFileGroupByName(String fileName, FileGroup newGroup) {
+        Optional<FileEntity> fileOpt = fileRepository.findByFileName(fileName);
+        if (fileOpt.isPresent()) {
+            FileEntity file = fileOpt.get();
+            file.setFileGroup(newGroup);
+            fileRepository.save(file);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean changeFileNameById(Long id, String newFileName) {
+        Optional<FileEntity> fileOpt = fileRepository.findById(id);
+        if (fileOpt.isPresent()) {
+            FileEntity file = fileOpt.get();
+            file.setFileName(newFileName);
+            fileRepository.save(file);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean changeFileNameByName(String currentFileName, String newFileName) {
+        Optional<FileEntity> fileOpt = fileRepository.findByFileName(currentFileName);
+        if (fileOpt.isPresent()) {
+            FileEntity file = fileOpt.get();
+            file.setFileName(newFileName);
+            fileRepository.save(file);
+            return true;
+        }
+        return false;
+    }
+
+
 }

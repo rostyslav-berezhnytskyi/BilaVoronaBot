@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.GetFile;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
+import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
 import org.telegram.telegrambots.meta.api.objects.*;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -82,6 +84,101 @@ public class FileHandlerImpl implements FileHandler {
             botSender.sendMessage(chatId, "✅ Файл віднесено до групи: " + selectedGroup.getDisplayName());
         } else {
             botSender.sendMessage(chatId, "❌ Не вдалося знайти файл для оновлення групи.");
+        }
+    }
+
+    @Override
+    public void sendFilesByGroup(Long chatId, FileGroup group) {
+        List<FileEntity> files = fileService.getFilesByGroup(group);
+
+        if (files.isEmpty()) {
+            botSender.sendMessage(chatId, "❌ Немає файлів у цій категорії.");
+            return;
+        }
+
+        files.forEach(file -> sendFile(chatId, file));  // Використовуємо універсальний метод
+    }
+
+    @Override
+    public void changeFileGroupById(Message msg, String id, String newGroup) {
+        if (!roleController.checkRole(msg.getChatId(), new Role[]{Role.OWNER, Role.ADMIN})) return;
+        try {
+            Long fileId = Long.parseLong(id);
+            FileGroup group = FileGroup.valueOf(newGroup.toUpperCase());
+            if (fileService.changeFileGroupById(fileId, group)) {
+                botSender.sendMessage(msg.getChatId(), "✅ Група файлу з ID " + fileId + " змінена на " + newGroup + ".");
+            } else {
+                botSender.sendMessage(msg.getChatId(), "❌ Файл з ID " + fileId + " не знайдено.");
+            }
+        } catch (NumberFormatException e) {
+            botSender.sendMessage(msg.getChatId(), "❌ Невірний формат ID. Приклад: /change_file_group_by_id 123 DOCUMENTATION");
+        } catch (IllegalArgumentException e) {
+            botSender.sendMessage(msg.getChatId(), "❌ Невірна група файлів. Доступні групи: " + FileGroup.values());
+        }
+    }
+
+    @Override
+    public void changeFileGroupByName(Message msg, String fileName, String newGroup) {
+        if (!roleController.checkRole(msg.getChatId(), new Role[]{Role.OWNER, Role.ADMIN})) return;
+        try {
+            FileGroup group = FileGroup.valueOf(newGroup.toUpperCase());
+            if (fileService.changeFileGroupByName(fileName, group)) {
+                botSender.sendMessage(msg.getChatId(), "✅ Група файлу '" + fileName + "' змінена на " + newGroup + ".");
+            } else {
+                botSender.sendMessage(msg.getChatId(), "❌ Файл з ім'ям '" + fileName + "' не знайдено.");
+            }
+        } catch (IllegalArgumentException e) {
+            botSender.sendMessage(msg.getChatId(), "❌ Невірна група файлів. Доступні групи: " + FileGroup.values());
+        }
+    }
+
+    @Override
+    public void changeFileNameById(Message msg, String id, String newFileName) {
+        if (!roleController.checkRole(msg.getChatId(), new Role[]{Role.OWNER, Role.ADMIN})) return;
+        try {
+            Long fileId = Long.parseLong(id);
+            if (fileService.changeFileNameById(fileId, newFileName)) {
+                botSender.sendMessage(msg.getChatId(), "✅ Назву файлу з ID " + fileId + " змінено на '" + newFileName + "'.");
+            } else {
+                botSender.sendMessage(msg.getChatId(), "❌ Файл з ID " + fileId + " не знайдено.");
+            }
+        } catch (NumberFormatException e) {
+            botSender.sendMessage(msg.getChatId(), "❌ Невірний формат ID. Приклад: /change_file_name_by_id 123 new_name.docx");
+        }
+    }
+
+    @Override
+    public void changeFileNameByName(Message msg, String currentFileName, String newFileName) {
+        if (!roleController.checkRole(msg.getChatId(), new Role[]{Role.OWNER, Role.ADMIN})) return;
+        if (fileService.changeFileNameByName(currentFileName, newFileName)) {
+            botSender.sendMessage(msg.getChatId(), "✅ Назву файлу '" + currentFileName + "' змінено на '" + newFileName + "'.");
+        } else {
+            botSender.sendMessage(msg.getChatId(), "❌ Файл з ім'ям '" + currentFileName + "' не знайдено.");
+        }
+    }
+
+    @Override
+    public void deleteFileById(Message msg, String id) {
+        if (!roleController.checkRole(msg.getChatId(), new Role[]{Role.OWNER, Role.ADMIN})) return;
+        try {
+            Long fileId = Long.parseLong(id);
+            if (fileService.deleteFileById(fileId)) {
+                botSender.sendMessage(msg.getChatId(), "✅ Файл з ID " + fileId + " успішно видалено.");
+            } else {
+                botSender.sendMessage(msg.getChatId(), "❌ Файл з ID " + fileId + " не знайдено.");
+            }
+        } catch (NumberFormatException e) {
+            botSender.sendMessage(msg.getChatId(), "❌ Невірний формат ID. Приклад: /delete_file_by_id 123");
+        }
+    }
+
+    @Override
+    public void deleteFileByName(Message msg, String fileName) {
+        if (!roleController.checkRole(msg.getChatId(), new Role[]{Role.OWNER, Role.ADMIN})) return;
+        if (fileService.deleteFileByName(fileName)) {
+            botSender.sendMessage(msg.getChatId(), "✅ Файл з ім'ям '" + fileName + "' успішно видалено.");
+        } else {
+            botSender.sendMessage(msg.getChatId(), "❌ Файл з ім'ям '" + fileName + "' не знайдено.");
         }
     }
 
@@ -164,23 +261,41 @@ public class FileHandlerImpl implements FileHandler {
         List<FileEntity> files = fileService.getAllFiles();
 
         if (files.isEmpty()) {
-            botSender.sendMessage(msg.getChatId(), "📂 Немає збережених файлів.");
+            botSender.sendMessage(chatId, "📂 Немає збережених файлів.");
             return;
         }
 
-        for (FileEntity file : files) {
-            InputFile inputFile = new InputFile(new ByteArrayInputStream(file.getFileData()), file.getFileName());
-            SendDocument sendDocument = new SendDocument();
-            sendDocument.setChatId(msg.getChatId());
-            sendDocument.setDocument(inputFile);
-            sendDocument.setCaption("📜 " + file.getFileName() + " (" + (file.getFileSize() / 1024) + " KB)");
+        files.forEach(file -> sendFile(chatId, file));  // Використовуємо універсальний метод
+    }
 
-            try {
+    private void sendFile(Long chatId, FileEntity file) {
+        String mimeType = file.getFileType(); // Наприклад, image/jpg, video/mp4, application/pdf
+        InputStream fileStream = new ByteArrayInputStream(file.getFileData());
+        InputFile inputFile = new InputFile(fileStream, file.getFileName());
+
+        try {
+            if (mimeType.startsWith("image/")) {  // Якщо файл є зображенням
+                SendPhoto sendPhoto = new SendPhoto();
+                sendPhoto.setChatId(chatId);
+                sendPhoto.setPhoto(inputFile);
+                sendPhoto.setCaption(file.getFileName() + " (" + (file.getFileSize() / 1024) + " KB) ID: " + file.getId());
+                botSender.execute(sendPhoto);
+            } else if (mimeType.startsWith("video/")) {  // Якщо файл є відео
+                SendVideo sendVideo = new SendVideo();
+                sendVideo.setChatId(chatId);
+                sendVideo.setVideo(inputFile);
+                sendVideo.setCaption(file.getFileName() + " (" + (file.getFileSize() / 1024) + " KB) ID: " + file.getId());
+                botSender.execute(sendVideo);
+            } else {  // Всі інші файли відправляємо як документи
+                SendDocument sendDocument = new SendDocument();
+                sendDocument.setChatId(chatId);
+                sendDocument.setDocument(inputFile);
+                sendDocument.setCaption(file.getFileName() + " (" + (file.getFileSize() / 1024) + " KB) ID: " + file.getId());
                 botSender.execute(sendDocument);
-            } catch (TelegramApiException e) {
-                log.error("❌ Помилка надсилання файлу: {}", e.getMessage());
-                botSender.sendMessage(msg.getChatId(), "❌ Не вдалося надіслати файл: " + file.getFileName());
             }
+        } catch (TelegramApiException e) {
+            log.error("❌ Помилка надсилання файлу: {}", e.getMessage());
+            botSender.sendMessage(chatId, "❌ Не вдалося надіслати файл: " + file.getFileName());
         }
     }
 
