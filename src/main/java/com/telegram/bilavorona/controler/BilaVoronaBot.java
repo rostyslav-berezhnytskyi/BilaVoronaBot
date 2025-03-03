@@ -22,8 +22,9 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 import org.telegram.telegrambots.meta.generics.LongPollingBot;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -33,6 +34,8 @@ public class BilaVoronaBot implements LongPollingBot {
     private final FileHandler fileCommandHandler;
     private final UserController userController;
     private final MyBotSender botSender;
+
+    private final Map<Long, Boolean> sendForAllUserState = new HashMap<>(); // Track if a user is in the process of sending a message to all users
 
     @Autowired
     public BilaVoronaBot(BotConfig config, BotCommandHandler botCommandHandler, FileHandler fileCommandHandler, UserController userController, MyBotSender botSender) {
@@ -57,6 +60,8 @@ public class BilaVoronaBot implements LongPollingBot {
                 fileCommandHandler.sendFilesByGroup(chatId, FileGroup.DOCUMENTATION);
             } else if (data.equals("/examples")) {
                 fileCommandHandler.sendFilesByGroup(chatId, FileGroup.EXAMPLES);
+            } else if (data.equals("/contacts")) {
+                botCommandHandler.contacts(chatId);
             } else {
                 userController.handleRoleSelection(update.getCallbackQuery());
             }
@@ -65,6 +70,13 @@ public class BilaVoronaBot implements LongPollingBot {
 
         Message msg = update.getMessage();
         if (msg == null) return;  // Check for null to avoid NullPointerException
+        Long chatId = msg.getChatId();
+
+        if (sendForAllUserState.getOrDefault(chatId, false)) { // Check if user is in the state to send message to all users
+            userController.sendForAllUsers(msg);  // Send the message to all users
+            sendForAllUserState.put(chatId, false);  // Reset the state
+            return;
+        }
 
         if (msg.hasDocument() || msg.hasPhoto() || msg.hasVideo()) {
             fileCommandHandler.saveFile(msg);
@@ -73,11 +85,11 @@ public class BilaVoronaBot implements LongPollingBot {
 
         if (msg.hasText()) {
             String[] commandParts = msg.getText().split(" ");
-            Long chatId = msg.getChatId();
 
             switch (commandParts[0]) {
-                case "Документація" -> commandParts[0] = "/documentation";
-                case "Приклади" -> commandParts[0] = "/examples";
+                case "📄" -> commandParts[0] = "/documentation";
+                case "📋" -> commandParts[0] = "/examples";
+                case "\uD83D\uDCDE" -> commandParts[0] = "/contacts";
                 default -> commandParts[0] = commandParts[0];
             }
 
@@ -85,9 +97,12 @@ public class BilaVoronaBot implements LongPollingBot {
                 case "/start" -> {
                     botCommandHandler.start(msg);
                     sendPersistentButtons(chatId);
-//                    sendInlinePersistentButtons(chatId);
+                    sendInlinePersistentButtons(chatId);
                 }
                 case "/help" -> botCommandHandler.help(msg);
+                case "/help_admin" -> botCommandHandler.helpAdmin(msg);
+                case "/contacts" -> botCommandHandler.contacts(chatId);
+                case "/get_all_users" -> userController.getAllUsers(msg);
                 case "/delete_user" -> {
                     if (commandParts.length > 1) {
                         userController.deleteUser(msg, commandParts[1]);
@@ -147,11 +162,8 @@ public class BilaVoronaBot implements LongPollingBot {
                     }
                 }
                 case "/send_for_all_user" -> {
-                    if (commandParts.length > 1) {
-                        userController.sendForAllUsers(msg);
-                    } else {
-                        botSender.sendMessage(chatId, "Будь ласка вкажіть повідомлення для відправки всім користувачам. Приклад: /send_for_all_user текст для відпавки");
-                    }
+                    sendForAllUserState.put(chatId, true);  // Mark that this user wants to send a message to all users
+                    botSender.sendMessage(chatId, "Вкажіть текст чи файл що буде надісланий всім користувачам");
                 }
                 // Handle persistent button presses
                 case "/documentation" -> fileCommandHandler.sendFilesByGroup(chatId, FileGroup.DOCUMENTATION);
@@ -165,26 +177,13 @@ public class BilaVoronaBot implements LongPollingBot {
         List<BotCommand> listOfCommands = new ArrayList<>();
         listOfCommands.add(new BotCommand("/start", "Почати роботу з ботом і отримати привітання"));
         listOfCommands.add(new BotCommand("/help", "Отримати інформацію по роботі з ботом"));
-        listOfCommands.add(new BotCommand("/delete_user", "Видаляє вказаного користувача за його юзернеймом з БД (АДМІН)"));
-        listOfCommands.add(new BotCommand("/get_all_files", "Отримати всі файли"));
-        listOfCommands.add(new BotCommand("/change_role", "Змінює роль вказаного користувача за його юзернеймом (АДМІН)"));
-        listOfCommands.add(new BotCommand("/send_for_all_user", "Відправляє текстове повідомлення всім користувачам боту (АДМІН)"));
-
         // 📄 Documentation and Examples
         listOfCommands.add(new BotCommand("/documentation", "Отримати документи з розділу Документація"));
         listOfCommands.add(new BotCommand("/examples", "Отримати приклади виконаних робіт"));
-
-//        // 📞 Contacts
-//        listOfCommands.add(new BotCommand("/contacts", "Отримати контактну інформацію"));
+        // 📞 Contacts
+        listOfCommands.add(new BotCommand("/contacts", "Отримати контактну інформацію"));
+        listOfCommands.add(new BotCommand("/help_admin", "Отримати каманди адміністратора"));
 //        listOfCommands.add(new BotCommand("/contact_manager", "Написати нашому менеджеру"));
-
-        // 🛠 File Management
-        listOfCommands.add(new BotCommand("/change_file_group_by_id", "Змінити групу файлу за його ID"));
-        listOfCommands.add(new BotCommand("/change_file_group_by_name", "Змінити групу файлу за його назвою"));
-        listOfCommands.add(new BotCommand("/change_file_name_by_id", "Змінити назву файлу за його ID"));
-        listOfCommands.add(new BotCommand("/change_file_name_by_name", "Змінити назву файлу за його поточною назвою"));
-        listOfCommands.add(new BotCommand("/delete_file_by_id", "Видалити файл за його ID"));
-        listOfCommands.add(new BotCommand("/delete_file_by_name", "Видалити файл за його назвою"));
         try {
             botSender.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
             log.info("Bot commands successfully set.");
@@ -198,13 +197,15 @@ public class BilaVoronaBot implements LongPollingBot {
         keyboardMarkup.setResizeKeyboard(true);
         keyboardMarkup.setOneTimeKeyboard(false);
 
-        KeyboardButton docsButton = new KeyboardButton("Документація 📄");
-        KeyboardButton examplesButton = new KeyboardButton("Приклади виконаних робіт 📋");
+        KeyboardButton docsButton = new KeyboardButton("📄 Документація");
+        KeyboardButton examplesButton = new KeyboardButton("📋 Приклади виконаних робіт");
+        KeyboardButton contactsButton = new KeyboardButton("\uD83D\uDCDE Наші контакти");
 
         // Creating rows for buttons
         KeyboardRow row = new KeyboardRow();
         row.add(docsButton);
         row.add(examplesButton);
+        row.add(contactsButton);
 
         List<KeyboardRow> keyboard = new ArrayList<>();
         keyboard.add(row);
@@ -223,14 +224,18 @@ public class BilaVoronaBot implements LongPollingBot {
         InlineKeyboardButton examplesButton = new InlineKeyboardButton("📋 Приклади виконаних робіт");
         examplesButton.setCallbackData("/examples");  // Command to be executed
 
+        InlineKeyboardButton contactsButton = new InlineKeyboardButton("\uD83D\uDCDE Наші контакти");
+        contactsButton.setCallbackData("/contacts");  // Command to be executed
+
         // Create a row for the buttons
         List<InlineKeyboardButton> row = new ArrayList<>();
         row.add(docsButton);
         row.add(examplesButton);
+        row.add(contactsButton);
         rows.add(row);
 
         inlineKeyboard.setKeyboard(rows);
-        botSender.sendInlineKeyboardMarkupMessage(chatId, "⬇️ Виберіть категорію файлів:", inlineKeyboard);
+        botSender.sendInlineKeyboardMarkupMessage(chatId, "⬇️ Виберіть одну з базових дій:", inlineKeyboard);
     }
 
     @Override

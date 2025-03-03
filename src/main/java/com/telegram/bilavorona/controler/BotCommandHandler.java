@@ -11,4 +11,8 @@ public interface BotCommandHandler {
     void help(Message msg);
 
     void defaultCom(Message msg);
+
+    void contacts(Long chatId);
+
+    void helpAdmin(Message msg);
 }

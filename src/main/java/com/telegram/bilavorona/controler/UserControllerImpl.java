@@ -39,6 +39,32 @@ public class UserControllerImpl implements UserController {
     }
 
     @Override
+    public void getAllUsers(Message msg) {
+        Long chatId = msg.getChatId();
+        log.info("Called the command to get all the users in chatId = {}", chatId);
+        if (!roleController.checkRole(chatId, new Role[]{Role.OWNER, Role.ADMIN})) return;
+
+        List<User> allUsers = userService.findAll();
+        int count = 0;
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < allUsers.size(); i++) {
+            String userStr = "ID: " + allUsers.get(i).getChatId() +
+                    ", user_name: " + allUsers.get(i).getUserName() +
+                    ", first_name: " + (allUsers.get(i).getFirstName() == null ? "" : allUsers.get(i).getFirstName()) +
+                    ", last_name:  " + (allUsers.get(i).getLastName() == null ? "" : allUsers.get(i).getLastName())
+                    + "\n";
+            builder.append(userStr);
+            count++;
+            if(count == 10 || i == allUsers.size() - 1) {
+                botSender.sendMessage(chatId, builder.toString());
+                count = 0;
+                builder = new StringBuilder();
+            }
+        }
+    }
+
+
+    @Override
     public void deleteUser(Message msg, String username) {
         Long chatId = msg.getChatId();
         log.info("Called the command to delete the user role by username (delete_user) in chatId = {}", chatId);
@@ -128,8 +154,29 @@ public class UserControllerImpl implements UserController {
         String text = msg.getText();
         if (!roleController.checkRole(chatId, new Role[]{Role.OWNER, Role.ADMIN})) return;
 
-        String textToSen = EmojiParser.parseToUnicode(text.substring(text.indexOf(" ")));
-        List<User> users = userService.findAll();
-        users.forEach(u -> botSender.sendMessage(u.getChatId(), textToSen));
+        List<User> users = userService.findAll();  // Get all users from DB
+
+        if (msg.hasText()) {
+            for (User user : users) {
+                botSender.sendMessage(user.getChatId(), msg.getText());
+            }
+        } else if (msg.hasDocument()) {
+            for (User user : users) {
+                botSender.sendDocument(user.getChatId(), msg.getDocument().getFileId(), msg.getCaption());
+            }
+        } else if (msg.hasPhoto()) {
+            String fileId = msg.getPhoto().get(msg.getPhoto().size() - 1).getFileId();
+            for (User user : users) {
+                botSender.sendPhoto(user.getChatId(), fileId, msg.getCaption());
+            }
+        } else if (msg.hasVideo()) {
+            for (User user : users) {
+                botSender.sendVideo(user.getChatId(), msg.getVideo().getFileId(), msg.getCaption());
+            }
+        }
     }
+
+    //        String textToSen = EmojiParser.parseToUnicode(text.substring(text.indexOf(" ")));
+//        List<User> users = userService.findAll();
+//        users.forEach(u -> botSender.sendMessage(u.getChatId(), textToSen));
 }

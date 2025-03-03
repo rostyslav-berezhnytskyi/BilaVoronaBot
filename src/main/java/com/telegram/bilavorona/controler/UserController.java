@@ -7,6 +7,8 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 public interface UserController {
     void saveUser(Message msg);
 
+    void getAllUsers(Message msg);
+
     void deleteUser(Message msg, String username);
 
     void changeRole(Message msg, String username, Role role);
