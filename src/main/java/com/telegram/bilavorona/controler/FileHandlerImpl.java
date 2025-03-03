@@ -200,7 +200,7 @@ public class FileHandlerImpl implements FileHandler {
         // Get the highest quality photo
         PhotoSize photo = msg.getPhoto().get(msg.getPhoto().size() - 1);
         String fileId = photo.getFileId();
-        String fileName = "image.jpg";  // Default name
+        String fileName = "image_" + msg.getFrom().getUserName() + "_" + System.currentTimeMillis() + ".jpg";
         String mimeType = "image/jpeg"; // Default mime type for images
         Long fileSize = (long) photo.getFileSize();
         Long uploadedBy = msg.getFrom().getId();
@@ -213,7 +213,7 @@ public class FileHandlerImpl implements FileHandler {
     private void saveVideo(Message msg) {
         Video video = msg.getVideo();
         String fileId = video.getFileId();
-        String fileName = "video.mp4";  // Default name for video
+        String fileName = "video_" + msg.getFrom().getUserName() + "_" + System.currentTimeMillis() + ".mp4";
         String mimeType = "video/mp4"; // Default mime type for video
         Long fileSize = video.getFileSize();
         Long uploadedBy = msg.getFrom().getId();
