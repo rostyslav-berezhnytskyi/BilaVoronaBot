@@ -1,18 +1,18 @@
-package com.telegram.bilavorona.controler;
+package com.telegram.bilavorona.handler;
 
 import com.telegram.bilavorona.config.BotConfig;
-import com.telegram.bilavorona.config.MyBotSender;
+import com.telegram.bilavorona.util.CommandValidator;
+import com.telegram.bilavorona.util.MyBotSender;
 import com.telegram.bilavorona.model.FileEntity;
 import com.telegram.bilavorona.model.FileGroup;
 import com.telegram.bilavorona.model.Role;
 import com.telegram.bilavorona.service.FileService;
-import lombok.RequiredArgsConstructor;
+import com.telegram.bilavorona.util.RoleValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.GetFile;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
 import org.telegram.telegrambots.meta.api.objects.*;
@@ -35,22 +35,23 @@ public class FileHandlerImpl implements FileHandler {
     private final FileService fileService;
     private final MyBotSender botSender;
     private final BotConfig botConfig;
-    private final RoleController roleController;
+    private final RoleValidator roleValidator;
+    private final CommandValidator comValidator;
 
     @Autowired
-    public FileHandlerImpl(FileService fileService, MyBotSender botSender, BotConfig botConfig, RoleController roleController) {
+    public FileHandlerImpl(FileService fileService, MyBotSender botSender, BotConfig botConfig, RoleValidator roleValidator, CommandValidator comValidator) {
         this.fileService = fileService;
         this.botSender = botSender;
         this.botConfig = botConfig;
-        this.roleController = roleController;
+        this.roleValidator = roleValidator;
+        this.comValidator = comValidator;
     }
-
 
     @Override
     public void saveFile(Message msg) {
         Long chatId = msg.getChatId();
         log.info("Called the command to save file in chatId = {}", chatId);
-        if (!roleController.checkRole(msg.getChatId(), new Role[]{Role.OWNER, Role.ADMIN})) return;
+        if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
 
         if (msg.hasDocument()) {
             saveDocument(msg);
@@ -61,7 +62,6 @@ public class FileHandlerImpl implements FileHandler {
         } else {
             botSender.sendMessage(msg.getChatId(), "❌ Невідомий тип файлу!");
         }
-
         // Send message to choose file group
         sendGroupSelectionButtons(chatId);
     }
@@ -70,7 +70,6 @@ public class FileHandlerImpl implements FileHandler {
     public void assignFileGroup(CallbackQuery callbackQuery) {
         String data = callbackQuery.getData();
         Long chatId = callbackQuery.getMessage().getChatId();
-        String username = callbackQuery.getFrom().getUserName();
 
         // Extract file group from callback data
         String groupName = data.replace("file_group_", "");
@@ -96,89 +95,116 @@ public class FileHandlerImpl implements FileHandler {
             return;
         }
 
-        files.forEach(file -> sendFile(chatId, file));  // Використовуємо універсальний метод
+        files.forEach(file -> sendFile(chatId, file));
     }
 
     @Override
-    public void changeFileGroupById(Message msg, String id, String newGroup) {
-        if (!roleController.checkRole(msg.getChatId(), new Role[]{Role.OWNER, Role.ADMIN})) return;
+    public void changeFileGroupById(long chatId, String[] commandParts) {
+        if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
+        if (!comValidator.checkCom(chatId, commandParts, 3,
+                "Будь ласка вкажіть id файлу та групу. Приклад: /change_file_group_by_id 123 DOCUMENTATION")) return;
+
+        String newGroup = commandParts[2];
         try {
-            Long fileId = Long.parseLong(id);
+            Long fileId = Long.parseLong(commandParts[1]);
             FileGroup group = FileGroup.valueOf(newGroup.toUpperCase());
             if (fileService.changeFileGroupById(fileId, group)) {
-                botSender.sendMessage(msg.getChatId(), "✅ Група файлу з ID " + fileId + " змінена на " + newGroup + ".");
+                botSender.sendMessage(chatId, "✅ Група файлу з ID " + fileId + " змінена на " + newGroup + ".");
             } else {
-                botSender.sendMessage(msg.getChatId(), "❌ Файл з ID " + fileId + " не знайдено.");
+                botSender.sendMessage(chatId, "❌ Файл з ID " + fileId + " не знайдено.");
             }
         } catch (NumberFormatException e) {
-            botSender.sendMessage(msg.getChatId(), "❌ Невірний формат ID. Приклад: /change_file_group_by_id 123 DOCUMENTATION");
+            botSender.sendMessage(chatId, "❌ Невірний формат ID. Приклад: /change_file_group_by_id 123 DOCUMENTATION");
         } catch (IllegalArgumentException e) {
-            botSender.sendMessage(msg.getChatId(), "❌ Невірна група файлів. Доступні групи: " + FileGroup.values());
+            botSender.sendMessage(chatId, "❌ Невірна група файлів. Доступні групи: " + FileGroup.values());
         }
     }
 
     @Override
-    public void changeFileGroupByName(Message msg, String fileName, String newGroup) {
-        if (!roleController.checkRole(msg.getChatId(), new Role[]{Role.OWNER, Role.ADMIN})) return;
+    public void changeFileGroupByName(long chatId, String[] commandParts) {
+        if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
+        if (!comValidator.checkCom(chatId, commandParts, 3,
+                "Будь ласка вкажіть ім'я файлу та групу. Приклад: /change_file_group_by_name file_name.docx EXAMPLES")) return;
+
+        String fileName = commandParts[1];
+        String newGroup = commandParts[2];
         try {
             FileGroup group = FileGroup.valueOf(newGroup.toUpperCase());
             if (fileService.changeFileGroupByName(fileName, group)) {
-                botSender.sendMessage(msg.getChatId(), "✅ Група файлу '" + fileName + "' змінена на " + newGroup + ".");
+                botSender.sendMessage(chatId, "✅ Група файлу '" + fileName + "' змінена на " + newGroup + ".");
             } else {
-                botSender.sendMessage(msg.getChatId(), "❌ Файл з ім'ям '" + fileName + "' не знайдено.");
+                botSender.sendMessage(chatId, "❌ Файл з ім'ям '" + fileName + "' не знайдено.");
             }
         } catch (IllegalArgumentException e) {
-            botSender.sendMessage(msg.getChatId(), "❌ Невірна група файлів. Доступні групи: " + FileGroup.values());
+            botSender.sendMessage(chatId, "❌ Невірна група файлів. Доступні групи: " + FileGroup.values());
         }
     }
 
     @Override
-    public void changeFileNameById(Message msg, String id, String newFileName) {
-        if (!roleController.checkRole(msg.getChatId(), new Role[]{Role.OWNER, Role.ADMIN})) return;
+    public void changeFileNameById(long chatId, String[] commandParts) {
+        if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
+        if (!comValidator.checkCom(chatId, commandParts, 3,
+                "Будь ласка вкажіть id файлу та нове ім'я файлу. Приклад: /change_file_name_by_id 123 new_name.docx")) return;
+
+        String id = commandParts[1];
+        String newFileName = commandParts[2];
         try {
             Long fileId = Long.parseLong(id);
             if (fileService.changeFileNameById(fileId, newFileName)) {
-                botSender.sendMessage(msg.getChatId(), "✅ Назву файлу з ID " + fileId + " змінено на '" + newFileName + "'.");
+                botSender.sendMessage(chatId, "✅ Назву файлу з ID " + fileId + " змінено на '" + newFileName + "'.");
             } else {
-                botSender.sendMessage(msg.getChatId(), "❌ Файл з ID " + fileId + " не знайдено.");
+                botSender.sendMessage(chatId, "❌ Файл з ID " + fileId + " не знайдено.");
             }
         } catch (NumberFormatException e) {
-            botSender.sendMessage(msg.getChatId(), "❌ Невірний формат ID. Приклад: /change_file_name_by_id 123 new_name.docx");
+            botSender.sendMessage(chatId, "❌ Невірний формат ID. Приклад: /change_file_name_by_id 123 new_name.docx");
         }
     }
 
     @Override
-    public void changeFileNameByName(Message msg, String currentFileName, String newFileName) {
-        if (!roleController.checkRole(msg.getChatId(), new Role[]{Role.OWNER, Role.ADMIN})) return;
+    public void changeFileNameByName(long chatId, String[] commandParts) {
+        if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
+        if (!comValidator.checkCom(chatId, commandParts, 3,
+                "Будь ласка вкажіть старе ім'я файлу та нове ім'я файлу. Приклад: /change_file_name_by_name old_name.docx new_name.docx")) return;
+
+        String currentFileName = commandParts[1];
+        String newFileName = commandParts[2];
         if (fileService.changeFileNameByName(currentFileName, newFileName)) {
-            botSender.sendMessage(msg.getChatId(), "✅ Назву файлу '" + currentFileName + "' змінено на '" + newFileName + "'.");
+            botSender.sendMessage(chatId, "✅ Назву файлу '" + currentFileName + "' змінено на '" + newFileName + "'.");
         } else {
-            botSender.sendMessage(msg.getChatId(), "❌ Файл з ім'ям '" + currentFileName + "' не знайдено.");
+            botSender.sendMessage(chatId, "❌ Файл з ім'ям '" + currentFileName + "' не знайдено.");
         }
     }
 
     @Override
-    public void deleteFileById(Message msg, String id) {
-        if (!roleController.checkRole(msg.getChatId(), new Role[]{Role.OWNER, Role.ADMIN})) return;
+    public void deleteFileById(long chatId, String[] commandParts) {
+        if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
+        if (!comValidator.checkCom(chatId, commandParts, 2,
+                "Будь ласка вкажіть id файлу для видалення. Приклад: /delete_file_by_id 123")) return;
+
+        String id = commandParts[1];
         try {
             Long fileId = Long.parseLong(id);
             if (fileService.deleteFileById(fileId)) {
-                botSender.sendMessage(msg.getChatId(), "✅ Файл з ID " + fileId + " успішно видалено.");
+                botSender.sendMessage(chatId, "✅ Файл з ID " + fileId + " успішно видалено.");
             } else {
-                botSender.sendMessage(msg.getChatId(), "❌ Файл з ID " + fileId + " не знайдено.");
+                botSender.sendMessage(chatId, "❌ Файл з ID " + fileId + " не знайдено.");
             }
         } catch (NumberFormatException e) {
-            botSender.sendMessage(msg.getChatId(), "❌ Невірний формат ID. Приклад: /delete_file_by_id 123");
+            botSender.sendMessage(chatId, "❌ Невірний формат ID. Приклад: /delete_file_by_id 123");
         }
     }
 
     @Override
-    public void deleteFileByName(Message msg, String fileName) {
-        if (!roleController.checkRole(msg.getChatId(), new Role[]{Role.OWNER, Role.ADMIN})) return;
+    public void deleteFileByName(long chatId, String[] commandParts) {
+        if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
+        if (!comValidator.checkCom(chatId, commandParts, 2,
+                "Будь ласка вкажіть ім'я файлу для видалення. Приклад: /delete_file_by_name file_name.docx")) return;
+
+        String fileName = commandParts[1];
         if (fileService.deleteFileByName(fileName)) {
-            botSender.sendMessage(msg.getChatId(), "✅ Файл з ім'ям '" + fileName + "' успішно видалено.");
+            botSender.sendMessage(chatId, "✅ Файл з ім'ям '" + fileName + "' успішно видалено.");
         } else {
-            botSender.sendMessage(msg.getChatId(), "❌ Файл з ім'ям '" + fileName + "' не знайдено.");
+            botSender.sendMessage(chatId, "❌ Файл з ім'ям '" + fileName + "' не знайдено.");
         }
     }
 
@@ -255,8 +281,7 @@ public class FileHandlerImpl implements FileHandler {
 
 
     @Override
-    public void getAllFiles(Message msg) {
-        Long chatId = msg.getChatId();
+    public void getAllFiles(long chatId) {
         log.info("Called the command to get all files from DB in chatId = {}", chatId);
         List<FileEntity> files = fileService.getAllFiles();
 
@@ -264,7 +289,6 @@ public class FileHandlerImpl implements FileHandler {
             botSender.sendMessage(chatId, "📂 Немає збережених файлів.");
             return;
         }
-
         files.forEach(file -> sendFile(chatId, file));  // Використовуємо універсальний метод
     }
 

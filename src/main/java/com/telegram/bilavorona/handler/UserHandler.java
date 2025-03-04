@@ -1,19 +1,17 @@
-package com.telegram.bilavorona.controler;
+package com.telegram.bilavorona.handler;
 
 import com.telegram.bilavorona.model.Role;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
 
-public interface UserController {
+public interface UserHandler {
     void saveUser(Message msg);
 
-    void getAllUsers(Message msg);
+    void getAllUsers(long chatId);
 
-    void deleteUser(Message msg, String username);
+    void deleteUser(long chatId, String[] commandParts);
 
-    void changeRole(Message msg, String username, Role role);
-
-    void showRoleSelectionButtons(Message msg, String username);
+    void changeRole(long chatId, String username, Role role);
 
     void handleRoleSelection(CallbackQuery callbackQuery);
 

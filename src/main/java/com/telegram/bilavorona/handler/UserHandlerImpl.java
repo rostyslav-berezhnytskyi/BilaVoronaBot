@@ -1,35 +1,35 @@
-package com.telegram.bilavorona.controler;
+package com.telegram.bilavorona.handler;
 
-import com.telegram.bilavorona.config.MyBotSender;
+import com.telegram.bilavorona.util.CommandValidator;
+import com.telegram.bilavorona.util.MyBotSender;
 import com.telegram.bilavorona.model.Role;
 import com.telegram.bilavorona.model.User;
 import com.telegram.bilavorona.service.UserService;
-import com.vdurmont.emoji.EmojiParser;
+import com.telegram.bilavorona.util.RoleValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 
 @Slf4j
 @Component
-public class UserControllerImpl implements UserController {
+public class UserHandlerImpl implements UserHandler {
     private final UserService userService;
-    private final RoleController roleController;
+    private final RoleValidator roleValidator;
     private final MyBotSender botSender;
+    private final CommandValidator comValidator;
 
     @Autowired
-    public UserControllerImpl(UserService userService, RoleController roleController, MyBotSender botSender) {
+    public UserHandlerImpl(UserService userService, RoleValidator roleValidator, MyBotSender botSender, CommandValidator comValidator) {
         this.userService = userService;
-        this.roleController = roleController;
+        this.roleValidator = roleValidator;
         this.botSender = botSender;
+        this.comValidator = comValidator;
     }
 
     @Override
@@ -39,10 +39,9 @@ public class UserControllerImpl implements UserController {
     }
 
     @Override
-    public void getAllUsers(Message msg) {
-        Long chatId = msg.getChatId();
+    public void getAllUsers(long chatId) {
         log.info("Called the command to get all the users in chatId = {}", chatId);
-        if (!roleController.checkRole(chatId, new Role[]{Role.OWNER, Role.ADMIN})) return;
+        if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
 
         List<User> allUsers = userService.findAll();
         int count = 0;
@@ -65,11 +64,13 @@ public class UserControllerImpl implements UserController {
 
 
     @Override
-    public void deleteUser(Message msg, String username) {
-        Long chatId = msg.getChatId();
+    public void deleteUser(long chatId, String[] commandParts) {
         log.info("Called the command to delete the user role by username (delete_user) in chatId = {}", chatId);
 
-        if (!roleController.checkRole(chatId, new Role[]{Role.OWNER, Role.ADMIN})) return;
+        if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
+        if (!comValidator.checkCom(chatId, commandParts, 2, "Будь ласка вкажіть юзернейм. Приклад: /deleteUser @username")) return;
+
+        String username = commandParts[1];
         username = username.startsWith("@") ? username.substring(1) : username;
         String answer;
 
@@ -85,11 +86,10 @@ public class UserControllerImpl implements UserController {
     }
 
     @Override
-    public void changeRole(Message msg, String username, Role role) {
-        Long chatId = msg.getChatId();
+    public void changeRole(long chatId, String username, Role role) {
         log.info("Called the command to change the user role by username (change_role) in chatId = {}", chatId);
 
-        if (!roleController.checkRole(chatId, new Role[]{Role.OWNER, Role.ADMIN})) return;
+        if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
 
         Optional<User> userOpt = userService.findByUsername(username);
         if (userOpt.isEmpty()) {
@@ -115,27 +115,6 @@ public class UserControllerImpl implements UserController {
     }
 
     @Override
-    public void showRoleSelectionButtons(Message msg, String username) {
-        Long chatId = msg.getChatId();
-        log.info("Showing role selection buttons for username = {} in chatId = {}", username, chatId);
-
-        // Create buttons for selecting USER or ADMIN roles
-        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
-
-        InlineKeyboardButton userButton = new InlineKeyboardButton("USER");
-        userButton.setCallbackData("change_role:" + username + ":USER");
-
-        InlineKeyboardButton adminButton = new InlineKeyboardButton("ADMIN");
-        adminButton.setCallbackData("change_role:" + username + ":ADMIN");
-
-        rows.add(List.of(userButton, adminButton));
-        markup.setKeyboard(rows);
-
-        botSender.sendInlineKeyboardMarkupMessage(chatId, "Виберіть нову роль для користувача " + username + ":", markup);
-    }
-
-    @Override
     public void handleRoleSelection(CallbackQuery callbackQuery) {
         String data = callbackQuery.getData();
         if (data.startsWith("change_role:")) {
@@ -143,7 +122,7 @@ public class UserControllerImpl implements UserController {
             if (parts.length == 3) {
                 String username = parts[1];
                 Role selectedRole = Role.valueOf(parts[2]);
-                changeRole((Message) callbackQuery.getMessage(), username, selectedRole);
+                changeRole(callbackQuery.getMessage().getChatId(), username, selectedRole);
             }
         }
     }
@@ -151,8 +130,7 @@ public class UserControllerImpl implements UserController {
     @Override
     public void sendForAllUsers(Message msg) {
         Long chatId = msg.getChatId();
-        String text = msg.getText();
-        if (!roleController.checkRole(chatId, new Role[]{Role.OWNER, Role.ADMIN})) return;
+        if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
 
         List<User> users = userService.findAll();  // Get all users from DB
 
@@ -175,8 +153,4 @@ public class UserControllerImpl implements UserController {
             }
         }
     }
-
-    //        String textToSen = EmojiParser.parseToUnicode(text.substring(text.indexOf(" ")));
-//        List<User> users = userService.findAll();
-//        users.forEach(u -> botSender.sendMessage(u.getChatId(), textToSen));
 }
