@@ -27,10 +27,11 @@ public class RoleControllerImpl implements RoleController {
             for (Role role : roles) {
                 if (user.get().getRole() == role) return true;
             }
-            return false;
-        } else {
             botSender.sendMessage(chatId, "У вас немає дозволу на таку команду");
             log.info("Try to delete user command without ADMIN or OWNER role in chatId = {}", chatId);
+            return false;
+        } else {
+            log.info("There is no user with such chatId = {}", chatId);
             return false;
         }
     }
