@@ -6,4 +6,6 @@ public interface ButtonsSender {
     void sendInlinePersistentButtons(Long chatId);
 
     void sendRoleSelectionButtons(long chatId, String[] commandParts);
+
+    void sendGroupSelectionButtons(Long chatId);
 }

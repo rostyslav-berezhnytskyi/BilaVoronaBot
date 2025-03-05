@@ -106,7 +106,7 @@ public class UserHandlerImpl implements UserHandler {
         }
 
         if (userService.updateUserRole(username, role)) {
-            botSender.sendMessage(chatId, "Роль користувача іспішно змінена");
+            botSender.sendMessage(chatId, "Роль користувача успішно змінена");
             log.info("User role successfully changed in chatId = {}", chatId);
             return;
         }

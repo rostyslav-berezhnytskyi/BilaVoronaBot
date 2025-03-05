@@ -55,17 +55,15 @@ public class BilaVoronaBot implements LongPollingBot {
         if (update.hasCallbackQuery()) {
             Long chatId = update.getCallbackQuery().getMessage().getChatId();
             String data = update.getCallbackQuery().getData();
+            String[] dataSplit = data.split(":");
 
-            if (data.startsWith("file_group_")) {
-                fileCommandHandler.assignFileGroup(update.getCallbackQuery());
-                return;  // Exit early if handled
-            }
-
-            switch (data) {
-                case "/documentation" -> fileCommandHandler.sendFilesByGroup(chatId, FileGroup.DOCUMENTATION);
-                case "/examples" -> fileCommandHandler.sendFilesByGroup(chatId, FileGroup.EXAMPLES);
-                case "/contacts" -> botCommandHandler.contacts(chatId);
-                default -> userHandler.handleRoleSelection(update.getCallbackQuery());
+            switch (dataSplit[0]) {
+                case "documentation" -> fileCommandHandler.sendFilesByGroup(chatId, FileGroup.DOCUMENTATION);
+                case "examples" -> fileCommandHandler.sendFilesByGroup(chatId, FileGroup.EXAMPLES);
+                case "contacts" -> botCommandHandler.contacts(chatId);
+                case "file_group" -> fileCommandHandler.assignFileGroup(update.getCallbackQuery());
+                case "change_role" -> userHandler.handleRoleSelection(update.getCallbackQuery());
+                default -> botSender.sendMessage(chatId, "Невідома callback команда");
             }
             return;
         }
@@ -80,7 +78,7 @@ public class BilaVoronaBot implements LongPollingBot {
             return;
         }
 
-        if (msg.hasDocument() || msg.hasPhoto() || msg.hasVideo()) {
+        if (msg.hasDocument() || msg.hasPhoto() || msg.hasVideo()) { // if was sent file / image / video
             fileCommandHandler.saveFile(msg);
             return;
         }

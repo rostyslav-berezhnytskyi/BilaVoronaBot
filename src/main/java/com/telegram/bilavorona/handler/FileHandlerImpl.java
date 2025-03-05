@@ -1,6 +1,7 @@
 package com.telegram.bilavorona.handler;
 
 import com.telegram.bilavorona.config.BotConfig;
+import com.telegram.bilavorona.util.ButtonsSender;
 import com.telegram.bilavorona.util.CommandValidator;
 import com.telegram.bilavorona.util.MyBotSender;
 import com.telegram.bilavorona.model.FileEntity;
@@ -37,14 +38,16 @@ public class FileHandlerImpl implements FileHandler {
     private final BotConfig botConfig;
     private final RoleValidator roleValidator;
     private final CommandValidator comValidator;
+    private final ButtonsSender buttonsSender;
 
     @Autowired
-    public FileHandlerImpl(FileService fileService, MyBotSender botSender, BotConfig botConfig, RoleValidator roleValidator, CommandValidator comValidator) {
+    public FileHandlerImpl(FileService fileService, MyBotSender botSender, BotConfig botConfig, RoleValidator roleValidator, CommandValidator comValidator, ButtonsSender buttonsSender) {
         this.fileService = fileService;
         this.botSender = botSender;
         this.botConfig = botConfig;
         this.roleValidator = roleValidator;
         this.comValidator = comValidator;
+        this.buttonsSender = buttonsSender;
     }
 
     @Override
@@ -62,8 +65,7 @@ public class FileHandlerImpl implements FileHandler {
         } else {
             botSender.sendMessage(msg.getChatId(), "❌ Невідомий тип файлу!");
         }
-        // Send message to choose file group
-        sendGroupSelectionButtons(chatId);
+        buttonsSender.sendGroupSelectionButtons(chatId);
     }
 
     @Override
@@ -72,7 +74,7 @@ public class FileHandlerImpl implements FileHandler {
         Long chatId = callbackQuery.getMessage().getChatId();
 
         // Extract file group from callback data
-        String groupName = data.replace("file_group_", "");
+        String groupName = data.split(":")[1];
         FileGroup selectedGroup = FileGroup.valueOf(groupName);
 
         // Get the latest file uploaded by this user (assuming we track it)
@@ -321,20 +323,5 @@ public class FileHandlerImpl implements FileHandler {
             log.error("❌ Помилка надсилання файлу: {}", e.getMessage());
             botSender.sendMessage(chatId, "❌ Не вдалося надіслати файл: " + file.getFileName());
         }
-    }
-
-    private void sendGroupSelectionButtons(Long chatId) {
-        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
-
-        for (FileGroup group : FileGroup.values()) {
-            InlineKeyboardButton button = new InlineKeyboardButton();
-            button.setText(group.getDisplayName());
-            button.setCallbackData("file_group_" + group.name());
-            rows.add(Collections.singletonList(button));
-        }
-        markup.setKeyboard(rows);
-
-        botSender.sendInlineKeyboardMarkupMessage(chatId, "До якої групи ви хочете віднести цей файл?", markup);
     }
 }

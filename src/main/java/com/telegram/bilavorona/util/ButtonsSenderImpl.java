@@ -1,5 +1,6 @@
 package com.telegram.bilavorona.util;
 
+import com.telegram.bilavorona.model.FileGroup;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -10,16 +11,19 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
 @Component
 public class ButtonsSenderImpl implements ButtonsSender{
     private final MyBotSender botSender;
+    private final CommandValidator commandValidator;
 
     @Autowired
-    public ButtonsSenderImpl(MyBotSender botSender) {
+    public ButtonsSenderImpl(MyBotSender botSender, CommandValidator commandValidator) {
         this.botSender = botSender;
+        this.commandValidator = commandValidator;
     }
 
     @Override
@@ -51,13 +55,13 @@ public class ButtonsSenderImpl implements ButtonsSender{
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
         InlineKeyboardButton docsButton = new InlineKeyboardButton("📄 Документація");
-        docsButton.setCallbackData("/documentation");  // Command to be executed
+        docsButton.setCallbackData("documentation");  // Command to be executed
 
         InlineKeyboardButton examplesButton = new InlineKeyboardButton("📋 Приклади виконаних робіт");
-        examplesButton.setCallbackData("/examples");  // Command to be executed
+        examplesButton.setCallbackData("examples");  // Command to be executed
 
         InlineKeyboardButton contactsButton = new InlineKeyboardButton("\uD83D\uDCDE Наші контакти");
-        contactsButton.setCallbackData("/contacts");  // Command to be executed
+        contactsButton.setCallbackData("contacts");  // Command to be executed
 
         // Create a row for the buttons
         List<InlineKeyboardButton> row = new ArrayList<>();
@@ -74,10 +78,9 @@ public class ButtonsSenderImpl implements ButtonsSender{
     public void sendRoleSelectionButtons(long chatId, String[] commandParts) {
         log.info("Showing role selection buttons in chatId = {}", chatId);
 
-        if (commandParts.length <= 1) {
-            botSender.sendMessage(chatId, "Будь ласка вкажіть юзернейм. Приклад: /change_role @username");
-            return;
-        }
+        if (!commandValidator.checkCom(chatId, commandParts, 2,
+                "Будь ласка вкажіть юзернейм. Приклад: /change_role @username")) return;
+
         String username = commandParts[1];
 
         // Create buttons for selecting USER or ADMIN roles
@@ -94,5 +97,21 @@ public class ButtonsSenderImpl implements ButtonsSender{
         markup.setKeyboard(rows);
 
         botSender.sendInlineKeyboardMarkupMessage(chatId, "Виберіть нову роль для користувача " + username + ":", markup);
+    }
+
+    @Override
+    public void sendGroupSelectionButtons(Long chatId) {
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
+        for (FileGroup group : FileGroup.values()) {
+            InlineKeyboardButton button = new InlineKeyboardButton();
+            button.setText(group.getDisplayName());
+            button.setCallbackData("file_group:" + group.name());
+            rows.add(Collections.singletonList(button));
+        }
+        markup.setKeyboard(rows);
+
+        botSender.sendInlineKeyboardMarkupMessage(chatId, "До якої групи ви хочете віднести цей файл?", markup);
     }
 }
