@@ -153,4 +153,30 @@ public class UserHandlerImpl implements UserHandler {
             }
         }
     }
+
+    @Override
+    public void sendForUsername(Message msg, String username) {
+        Long chatId = msg.getChatId();
+        if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
+
+        Optional<User> userOpt = userService.findByUsername(username);
+        User user = null;
+        if(userOpt.isPresent()) {
+            user = userOpt.get();// Get all users from DB
+        } else {
+            botSender.sendMessage(chatId, "Користувача з таким username не існує");
+            return;
+        }
+
+        if (msg.hasText()) {
+                botSender.sendMessage(user.getChatId(), msg.getText());
+        } else if (msg.hasDocument()) {
+                botSender.sendDocument(user.getChatId(), msg.getDocument().getFileId(), msg.getCaption());
+        } else if (msg.hasPhoto()) {
+            String fileId = msg.getPhoto().get(msg.getPhoto().size() - 1).getFileId();
+                botSender.sendPhoto(user.getChatId(), fileId, msg.getCaption());
+        } else if (msg.hasVideo()) {
+                botSender.sendVideo(user.getChatId(), msg.getVideo().getFileId(), msg.getCaption());
+        }
+    }
 }

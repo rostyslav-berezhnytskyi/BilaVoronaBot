@@ -16,4 +16,6 @@ public interface UserHandler {
     void handleRoleSelection(CallbackQuery callbackQuery);
 
     void sendForAllUsers(Message msg);
+
+    void sendForUsername(Message msg, String username);
 }

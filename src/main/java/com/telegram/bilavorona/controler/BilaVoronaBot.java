@@ -1,6 +1,7 @@
 package com.telegram.bilavorona.controler;
 
 import com.telegram.bilavorona.config.BotConfig;
+import com.telegram.bilavorona.service.UserStateService;
 import com.telegram.bilavorona.util.ButtonsSender;
 import com.telegram.bilavorona.util.MyBotSender;
 import com.telegram.bilavorona.handler.BotCommandHandler;
@@ -34,17 +35,17 @@ public class BilaVoronaBot implements LongPollingBot {
     private final UserHandler userHandler;
     private final MyBotSender botSender;
     private final ButtonsSender buttonsSender;
-
-    private final Map<Long, Boolean> sendForAllUserState = new HashMap<>(); // Track if a user is in the process of sending a message to all users
+    private final UserStateService userStateService;
 
     @Autowired
-    public BilaVoronaBot(BotConfig config, BotCommandHandler botCommandHandler, FileHandler fileCommandHandler, UserHandler userHandler, MyBotSender botSender, ButtonsSender buttonsSender) {
+    public BilaVoronaBot(BotConfig config, BotCommandHandler botCommandHandler, FileHandler fileCommandHandler, UserHandler userHandler, MyBotSender botSender, ButtonsSender buttonsSender, UserStateService userStateService) {
         this.config = config;
         this.botCommandHandler = botCommandHandler;
         this.fileCommandHandler = fileCommandHandler;
         this.userHandler = userHandler;
         this.botSender = botSender;
         this.buttonsSender = buttonsSender;
+        this.userStateService = userStateService;
         createListOfCommands();
     }
 
@@ -72,9 +73,19 @@ public class BilaVoronaBot implements LongPollingBot {
         if (msg == null) return;  // Check for null to avoid NullPointerException
         Long chatId = msg.getChatId();
 
-        if (sendForAllUserState.getOrDefault(chatId, false)) { // Check if user is in the state to send message to all users
-            userHandler.sendForAllUsers(msg);  // Send the message to all users
-            sendForAllUserState.put(chatId, false);  // Reset the state
+        if (userStateService.hasActiveCommand(chatId)) { // Check if the user has an active command
+            String[] command = userStateService.getCommandState(chatId).split(" ");  // Split command and parameters
+            switch (command[0]) {
+                case "sendForAllUsers" -> {
+                    userHandler.sendForAllUsers(msg);
+                    userStateService.clearCommandState(chatId);  // Reset state after processing
+                }
+                case "sendForUsername" -> {
+                    userHandler.sendForUsername(msg, command[1]);  // Use username parameter
+                    userStateService.clearCommandState(chatId);  // Reset state after processing
+                }
+                default -> botSender.sendMessage(chatId, "Невідома команда");
+            }
             return;
         }
 
@@ -97,9 +108,14 @@ public class BilaVoronaBot implements LongPollingBot {
                 case "/delete_user" -> userHandler.deleteUser(chatId, commandParts);
                 case "/change_role" -> buttonsSender.sendRoleSelectionButtons(chatId, commandParts);
                 case "/send_for_all_user" -> {
-                    sendForAllUserState.put(chatId, true);  // Mark that this user wants to send a message to all users
+                    userStateService.setCommandState(chatId, "sendForAllUsers");
                     botSender.sendMessage(chatId, "Вкажіть текст чи файл що буде надісланий всім користувачам");
                 }
+                case "/send_for_username" -> {
+                    userStateService.setCommandState(chatId, "sendForUsername " + commandParts[1]);
+                    botSender.sendMessage(chatId, "Вкажіть текст чи файл що буде надісланий " + commandParts[1]);
+                }
+
                 // Files
                 case "/get_all_files" -> fileCommandHandler.getAllFiles(chatId);
                 case "/change_file_group_by_id" -> fileCommandHandler.changeFileGroupById(chatId, commandParts);
