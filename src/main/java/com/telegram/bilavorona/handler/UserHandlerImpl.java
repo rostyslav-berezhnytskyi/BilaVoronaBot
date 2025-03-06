@@ -1,5 +1,6 @@
 package com.telegram.bilavorona.handler;
 
+import com.telegram.bilavorona.service.UserStateService;
 import com.telegram.bilavorona.util.CommandValidator;
 import com.telegram.bilavorona.util.MyBotSender;
 import com.telegram.bilavorona.model.Role;
@@ -23,13 +24,15 @@ public class UserHandlerImpl implements UserHandler {
     private final RoleValidator roleValidator;
     private final MyBotSender botSender;
     private final CommandValidator comValidator;
+    private final UserStateService userStateService;
 
     @Autowired
-    public UserHandlerImpl(UserService userService, RoleValidator roleValidator, MyBotSender botSender, CommandValidator comValidator) {
+    public UserHandlerImpl(UserService userService, RoleValidator roleValidator, MyBotSender botSender, CommandValidator comValidator, UserStateService userStateService) {
         this.userService = userService;
         this.roleValidator = roleValidator;
         this.botSender = botSender;
         this.comValidator = comValidator;
+        this.userStateService = userStateService;
     }
 
     @Override
@@ -54,7 +57,7 @@ public class UserHandlerImpl implements UserHandler {
                     + "\n";
             builder.append(userStr);
             count++;
-            if(count == 10 || i == allUsers.size() - 1) {
+            if (count == 10 || i == allUsers.size() - 1) {
                 botSender.sendMessage(chatId, builder.toString());
                 count = 0;
                 builder = new StringBuilder();
@@ -62,16 +65,13 @@ public class UserHandlerImpl implements UserHandler {
         }
     }
 
-
     @Override
     public void deleteUser(long chatId, String[] commandParts) {
-        log.info("Called the command to delete the user role by username (delete_user) in chatId = {}", chatId);
-
         if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
-        if (!comValidator.checkCom(chatId, commandParts, 2, "Будь ласка вкажіть юзернейм. Приклад: /deleteUser @username")) return;
+        if (!comValidator.checkCom(chatId, commandParts, 2, "Будь ласка вкажіть юзернейм. Приклад: /deleteUser @username"))
+            return;
 
         String username = commandParts[1];
-        username = username.startsWith("@") ? username.substring(1) : username;
         String answer;
 
         if (userService.deleteByUsername(username)) {
@@ -91,14 +91,9 @@ public class UserHandlerImpl implements UserHandler {
 
         if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
 
-        Optional<User> userOpt = userService.findByUsername(username);
-        if (userOpt.isEmpty()) {
-            botSender.sendMessage(chatId, "Користувача з таким юзернеймом не має в базі");
-            log.error("The user with this username does not exist in the database in chatId = {}", chatId);
-            return;
-        }
+        if(!checkUsernameInDB(chatId, username)) return;
+        User user = userService.findByUsername(username).get();
 
-        User user = userOpt.get();
         if (user.getRole() == role) {
             botSender.sendMessage(chatId, "Цей користувач вже має таку роль");
             log.info("The user already has the role you wanted to assign to him in chatId = {}", chatId);
@@ -130,53 +125,46 @@ public class UserHandlerImpl implements UserHandler {
     @Override
     public void sendForAllUsers(Message msg) {
         Long chatId = msg.getChatId();
+        log.info("Called the command to send text or file to all users of the bot, in chatId = {}", chatId);
         if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
 
         List<User> users = userService.findAll();  // Get all users from DB
-
-        if (msg.hasText()) {
-            for (User user : users) {
-                botSender.sendMessage(user.getChatId(), msg.getText());
-            }
-        } else if (msg.hasDocument()) {
-            for (User user : users) {
-                botSender.sendDocument(user.getChatId(), msg.getDocument().getFileId(), msg.getCaption());
-            }
-        } else if (msg.hasPhoto()) {
-            String fileId = msg.getPhoto().get(msg.getPhoto().size() - 1).getFileId();
-            for (User user : users) {
-                botSender.sendPhoto(user.getChatId(), fileId, msg.getCaption());
-            }
-        } else if (msg.hasVideo()) {
-            for (User user : users) {
-                botSender.sendVideo(user.getChatId(), msg.getVideo().getFileId(), msg.getCaption());
+        boolean flag = true;
+        for (User user : users) {
+            if(!botSender.sendAll(user.getChatId(), msg)) {
+                botSender.sendMessage(chatId, "Невідомий тип файлу, який неможливо надіслати всім користувачам");
+                flag = false;
+                break;
             }
         }
+        if(flag) botSender.sendMessage(chatId, "Повідомлення успішно надіслано всім користувачам боту");
+        userStateService.clearCommandState(chatId);  // Reset state after processing
     }
 
     @Override
     public void sendForUsername(Message msg, String username) {
         Long chatId = msg.getChatId();
+        log.info("Called the command to send text or file to user of the bot, in chatId = {}", chatId);
         if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
 
-        Optional<User> userOpt = userService.findByUsername(username);
-        User user = null;
-        if(userOpt.isPresent()) {
-            user = userOpt.get();// Get all users from DB
-        } else {
-            botSender.sendMessage(chatId, "Користувача з таким username не існує");
-            return;
-        }
+        if(!checkUsernameInDB(chatId, username)) return;
+        Long chatIdUser = userService.findByUsername(username).get().getChatId();
 
-        if (msg.hasText()) {
-                botSender.sendMessage(user.getChatId(), msg.getText());
-        } else if (msg.hasDocument()) {
-                botSender.sendDocument(user.getChatId(), msg.getDocument().getFileId(), msg.getCaption());
-        } else if (msg.hasPhoto()) {
-            String fileId = msg.getPhoto().get(msg.getPhoto().size() - 1).getFileId();
-                botSender.sendPhoto(user.getChatId(), fileId, msg.getCaption());
-        } else if (msg.hasVideo()) {
-                botSender.sendVideo(user.getChatId(), msg.getVideo().getFileId(), msg.getCaption());
+        if(botSender.sendAll(chatIdUser, msg)) {
+            botSender.sendMessage(chatId, "Повідомлення успішно надіслано користувачу " + username);
+        } else {
+            botSender.sendMessage(chatId, "Помилка у надсиланні повідомлення користувачу " + username + " невідомий тип файлу");
         }
+        userStateService.clearCommandState(chatId);  // Reset state after processing
+    }
+
+    private boolean checkUsernameInDB(long chatId, String username) {
+        Optional<User> userOpt = userService.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            botSender.sendMessage(chatId, "Користувача з таким юзернеймом не має в базі");
+            log.error("The user with this username does not exist in the database in chatId = {}", chatId);
+            return false;
+        }
+        return true;
     }
 }

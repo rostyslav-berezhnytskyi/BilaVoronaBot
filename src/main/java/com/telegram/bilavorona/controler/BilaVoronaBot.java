@@ -76,15 +76,9 @@ public class BilaVoronaBot implements LongPollingBot {
         if (userStateService.hasActiveCommand(chatId)) { // Check if the user has an active command
             String[] command = userStateService.getCommandState(chatId).split(" ");  // Split command and parameters
             switch (command[0]) {
-                case "sendForAllUsers" -> {
-                    userHandler.sendForAllUsers(msg);
-                    userStateService.clearCommandState(chatId);  // Reset state after processing
-                }
-                case "sendForUsername" -> {
-                    userHandler.sendForUsername(msg, command[1]);  // Use username parameter
-                    userStateService.clearCommandState(chatId);  // Reset state after processing
-                }
-                default -> botSender.sendMessage(chatId, "Невідома команда");
+                case "sendForAllUsers" -> userHandler.sendForAllUsers(msg);
+                case "sendForUsername" -> userHandler.sendForUsername(msg, command[1]);
+                default -> botSender.sendMessage(chatId, "Невідома active команда");
             }
             return;
         }
@@ -107,14 +101,8 @@ public class BilaVoronaBot implements LongPollingBot {
                 case "/get_all_users" -> userHandler.getAllUsers(chatId);
                 case "/delete_user" -> userHandler.deleteUser(chatId, commandParts);
                 case "/change_role" -> buttonsSender.sendRoleSelectionButtons(chatId, commandParts);
-                case "/send_for_all_user" -> {
-                    userStateService.setCommandState(chatId, "sendForAllUsers");
-                    botSender.sendMessage(chatId, "Вкажіть текст чи файл що буде надісланий всім користувачам");
-                }
-                case "/send_for_username" -> {
-                    userStateService.setCommandState(chatId, "sendForUsername " + commandParts[1]);
-                    botSender.sendMessage(chatId, "Вкажіть текст чи файл що буде надісланий " + commandParts[1]);
-                }
+                case "/send_for_all_user" -> userStateService.setCommandState(chatId, "sendForAllUsers");
+                case "/send_for_username" -> userStateService.setCommandState(chatId, "sendForUsername " + commandParts[1]);
 
                 // Files
                 case "/get_all_files" -> fileCommandHandler.getAllFiles(chatId);

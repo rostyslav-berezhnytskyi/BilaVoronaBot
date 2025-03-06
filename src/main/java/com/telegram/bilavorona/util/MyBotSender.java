@@ -12,6 +12,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -55,6 +56,26 @@ public class MyBotSender extends DefaultAbsSender {
         message.setReplyMarkup(markup);
 
         executeMessage(message);
+    }
+
+    public boolean sendAll(Long chatId, Message msg) {
+        if(msg.hasText()) {
+            sendMessage(chatId, msg.getText());
+            return true;
+        } else if (msg.hasVideo()) {
+            msg.getVideo().getFileId();
+            sendVideo(chatId, msg.getVideo().getFileId(), msg.getCaption());
+            return true;
+        } else if (msg.hasPhoto()) {
+            String fileId = msg.getPhoto().get(msg.getPhoto().size() - 1).getFileId();
+            sendPhoto(chatId, fileId, msg.getCaption());
+            return true;
+        } else if (msg.hasDocument()) {
+            sendDocument(chatId, msg.getDocument().getFileId(), msg.getCaption());
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public void sendDocument(Long chatId, String fileId, String caption) {
