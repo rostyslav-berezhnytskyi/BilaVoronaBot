@@ -1,11 +1,10 @@
 package com.telegram.bilavorona.handler;
 
-import com.telegram.bilavorona.util.ButtonsSender;
-import com.telegram.bilavorona.util.MyBotSender;
-import com.telegram.bilavorona.model.Role;
+import com.telegram.bilavorona.bila_vorona_manager.ManagerBotSender;
+import com.telegram.bilavorona.model.User;
+import com.telegram.bilavorona.service.UserStateService;
+import com.telegram.bilavorona.util.*;
 import com.telegram.bilavorona.service.UserService;
-import com.telegram.bilavorona.util.RoleValidator;
-import com.telegram.bilavorona.util.TextConstants;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,13 +19,17 @@ public class BotCommandHandlerImpl implements BotCommandHandler {
     private final MyBotSender botSender;
     private final RoleValidator roleValidator;
     private final ButtonsSender buttonsSender;
+    private final UserStateService userStateService;
+    private final ManagerBotSender managerBotSender;
 
     @Autowired
-    public BotCommandHandlerImpl(UserService userService, MyBotSender botSender, RoleValidator roleValidator, ButtonsSender buttonsSender) {
+    public BotCommandHandlerImpl(UserService userService, MyBotSender botSender, RoleValidator roleValidator, ButtonsSender buttonsSender, UserStateService userStateService, ManagerBotSender managerBotSender) {
         this.userService = userService;
         this.botSender = botSender;
         this.roleValidator = roleValidator;
         this.buttonsSender = buttonsSender;
+        this.userStateService = userStateService;
+        this.managerBotSender = managerBotSender;
     }
 
     @Override
@@ -67,5 +70,29 @@ public class BotCommandHandlerImpl implements BotCommandHandler {
         log.info("Invoke unknown command. Providing default message in chatId {}", chatId);
         String answer = "Невідома команда. Використовуйте /help, щоб побачити доступні команди.";
         botSender.sendMessage(chatId, answer);
+    }
+
+    @Override
+    public void sendToManager(Message msg) {
+        Long chatId = msg.getChatId();
+
+        // Fetch user info
+        User user = userService.findById(chatId).get();
+        String userInfo = String.format(
+                "🧑‍💼 *Користувач:*\n" +
+                        "Ім'я: %s %s\n" +
+                        "Username: @%s\n" +
+                        "ID: %d\n\n",
+                user.getFirstName() != null ? user.getFirstName() : "Невідомий",
+                user.getLastName() != null ? user.getLastName() : "",
+                user.getUserName() != null ? user.getUserName() : "Невідомий",
+                chatId
+        );
+
+        log.info("Sending message to manager from chatId = {}", chatId);
+        botSender.sendMessageToManager(userInfo, msg);  // Send message to manager
+        botSender.sendMessage(chatId, "Повідомлення успішно надіслано менеджеру");
+
+        userStateService.clearCommandState(chatId);  // Reset state after processing
     }
 }

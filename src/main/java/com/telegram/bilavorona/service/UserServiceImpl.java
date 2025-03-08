@@ -51,6 +51,10 @@ public class UserServiceImpl implements UserService{
         return userRepository.findAll();
     }
 
+    public List<User> findAllAdmins() {
+        return userRepository.findAllAdmins();
+    }
+
     @Override
     public Optional<User> findById(Long id) {
         return userRepository.findById(id);

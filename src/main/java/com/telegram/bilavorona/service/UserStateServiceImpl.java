@@ -1,5 +1,6 @@
 package com.telegram.bilavorona.service;
 
+import com.telegram.bilavorona.util.CommandValidator;
 import com.telegram.bilavorona.util.MyBotSender;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,7 @@ public class UserStateServiceImpl implements UserStateService{
         switch (commandPart[0]) {
             case "sendForAllUsers" -> botSender.sendMessage(chatId, "Вкажіть текст чи файл що буде надісланий всім користувачам");
             case "sendForUsername" -> botSender.sendMessage(chatId, "Вкажіть текст чи файл що буде надісланий " + commandPart[1]);
+            case "contactManager" -> botSender.sendMessage(chatId, "Напишіть своє запитання або надішліть файл, і ми передамо його менеджеру.");
         }
     }
 }

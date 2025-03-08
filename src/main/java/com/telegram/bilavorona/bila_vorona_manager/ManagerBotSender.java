@@ -1,22 +1,21 @@
-package com.telegram.bilavorona.util;
+package com.telegram.bilavorona.bila_vorona_manager;
 
-import com.telegram.bilavorona.bila_vorona_manager.BotManagerConfig;
-import com.telegram.bilavorona.bila_vorona_manager.ManagerBotSender;
+import java.io.File;
+
 import com.telegram.bilavorona.config.BotConfig;
+import com.telegram.bilavorona.model.FileEntity;
 import com.telegram.bilavorona.model.User;
+import com.telegram.bilavorona.service.FileService;
 import com.telegram.bilavorona.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.telegram.telegrambots.bots.DefaultAbsSender;
 import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.GetFile;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
@@ -27,26 +26,24 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Optional;
 
 @Slf4j
-@Component
-public class MyBotSender extends DefaultAbsSender {
-    private final String botToken;
-    private final UserService userService;
-    private final ManagerBotSender managerBotSender;
+@Service
+public class ManagerBotSender extends DefaultAbsSender {
+    private final String managerBotToken;
 
     @Autowired
-    public MyBotSender(BotConfig config, UserService userService, ManagerBotSender managerBotSender) {
-        super(new DefaultBotOptions()); // DefaultBotOptions is still used here
-        this.botToken = config.getToken();
-        this.userService = userService;
-        this.managerBotSender = managerBotSender;
+    public ManagerBotSender(BotManagerConfig botManagerConfig) {
+        super(new DefaultBotOptions());
+        this.managerBotToken = botManagerConfig.getToken();
     }
 
     @Override
     public String getBotToken() {
-        return botToken;
+        return managerBotToken;
     }
 
     public void sendMessage(Long chatId, String text) {
@@ -54,26 +51,6 @@ public class MyBotSender extends DefaultAbsSender {
         message.setChatId(chatId);
         message.setText(text);
         executeMessage(message);
-    }
-
-    public void sendMessageToManager(String userInfo, Message msg) {
-        List<User> admins = userService.findAllAdmins();  // Fetch managers from DB
-
-        if(msg.hasText()) {
-            userInfo = userInfo + "\uD83D\uDCE9 *Надіслане повідомлення:* \n" + msg.getText();
-            for (User admin : admins) {
-                managerBotSender.sendMessage(admin.getChatId(), userInfo);
-                log.info("Message sent to manager (admin={})", admin.getChatId());
-            }
-            return;
-        }
-
-//        for (User admin : admins) {
-//            managerBotSender.sendMessage(admin.getChatId(), userInfo);
-//            managerBotSender.sendFileToManager(admin.getChatId(), msg);
-//            log.info("Message sent to manager (admin={})", admin.getChatId());
-//        }
-
     }
 
     public void sendKeyboardMarkupMessage(Long chatId, String text, ReplyKeyboardMarkup keyboardMarkup) {
@@ -95,7 +72,7 @@ public class MyBotSender extends DefaultAbsSender {
     }
 
     public boolean sendAll(Long chatId, Message msg) {
-        if(msg.hasText()) {
+        if (msg.hasText()) {
             sendMessage(chatId, msg.getText());
             return true;
         } else if (msg.hasVideo()) {
@@ -169,4 +146,15 @@ public class MyBotSender extends DefaultAbsSender {
             log.error("Failed to execute message: {}", e.getMessage());
         }
     }
+
+//    public void sendFileToManager(long chatId, Message msg) {
+//        if (msg.hasPhoto()) {
+//            managerFileHandler.saveFile(msg);
+//            FileEntity fileEntity = fileService.getFileByName("image_TEMP").get();
+//            managerFileHandler.sendFile(chatId, fileEntity);
+//            fileService.deleteFileByName("image_TEMP");
+//        }
+//    }
+
+
 }

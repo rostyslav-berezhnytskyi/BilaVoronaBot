@@ -3,6 +3,7 @@ package com.telegram.bilavorona.controler;
 import com.telegram.bilavorona.config.BotConfig;
 import com.telegram.bilavorona.service.UserStateService;
 import com.telegram.bilavorona.util.ButtonsSender;
+import com.telegram.bilavorona.util.CommandValidator;
 import com.telegram.bilavorona.util.MyBotSender;
 import com.telegram.bilavorona.handler.BotCommandHandler;
 import com.telegram.bilavorona.handler.FileHandler;
@@ -36,9 +37,10 @@ public class BilaVoronaBot implements LongPollingBot {
     private final MyBotSender botSender;
     private final ButtonsSender buttonsSender;
     private final UserStateService userStateService;
+    private final CommandValidator commandValidator;
 
     @Autowired
-    public BilaVoronaBot(BotConfig config, BotCommandHandler botCommandHandler, FileHandler fileCommandHandler, UserHandler userHandler, MyBotSender botSender, ButtonsSender buttonsSender, UserStateService userStateService) {
+    public BilaVoronaBot(BotConfig config, BotCommandHandler botCommandHandler, FileHandler fileCommandHandler, UserHandler userHandler, MyBotSender botSender, ButtonsSender buttonsSender, UserStateService userStateService, CommandValidator commandValidator) {
         this.config = config;
         this.botCommandHandler = botCommandHandler;
         this.fileCommandHandler = fileCommandHandler;
@@ -46,6 +48,7 @@ public class BilaVoronaBot implements LongPollingBot {
         this.botSender = botSender;
         this.buttonsSender = buttonsSender;
         this.userStateService = userStateService;
+        this.commandValidator = commandValidator;
         createListOfCommands();
     }
 
@@ -64,6 +67,7 @@ public class BilaVoronaBot implements LongPollingBot {
                 case "contacts" -> botCommandHandler.contacts(chatId);
                 case "file_group" -> fileCommandHandler.assignFileGroup(update.getCallbackQuery());
                 case "change_role" -> userHandler.handleRoleSelection(update.getCallbackQuery());
+                case "contactManager" -> userStateService.setCommandState(chatId, "contactManager");
                 default -> botSender.sendMessage(chatId, "Невідома callback команда");
             }
             return;
@@ -78,6 +82,7 @@ public class BilaVoronaBot implements LongPollingBot {
             switch (command[0]) {
                 case "sendForAllUsers" -> userHandler.sendForAllUsers(msg);
                 case "sendForUsername" -> userHandler.sendForUsername(msg, command[1]);
+                case "contactManager" -> botCommandHandler.sendToManager(msg);
                 default -> botSender.sendMessage(chatId, "Невідома active команда");
             }
             return;
@@ -96,13 +101,17 @@ public class BilaVoronaBot implements LongPollingBot {
                 case "/start" -> botCommandHandler.start(msg);
                 case "/help" -> botCommandHandler.help(chatId);
                 case "/help_admin" -> botCommandHandler.helpAdmin(chatId);
+                case "/contact_manager", "\uD83D\uDCE9" -> userStateService.setCommandState(chatId, "contactManager");
 
                 // Users
                 case "/get_all_users" -> userHandler.getAllUsers(chatId);
                 case "/delete_user" -> userHandler.deleteUser(chatId, commandParts);
                 case "/change_role" -> buttonsSender.sendRoleSelectionButtons(chatId, commandParts);
                 case "/send_for_all_user" -> userStateService.setCommandState(chatId, "sendForAllUsers");
-                case "/send_for_username" -> userStateService.setCommandState(chatId, "sendForUsername " + commandParts[1]);
+                case "/send_for_username" -> {
+                    if (!commandValidator.checkCom(chatId, commandParts, 2, "Будь ласка вкажіть юзернейм. Приклад: /send_for_username @username")) return;
+                    userStateService.setCommandState(chatId, "sendForUsername " + commandParts[1]);
+                }
 
                 // Files
                 case "/get_all_files" -> fileCommandHandler.getAllFiles(chatId);
@@ -127,13 +136,13 @@ public class BilaVoronaBot implements LongPollingBot {
         List<BotCommand> listOfCommands = new ArrayList<>();
         listOfCommands.add(new BotCommand("/start", "Почати роботу з ботом і отримати привітання"));
         listOfCommands.add(new BotCommand("/help", "Отримати інформацію по роботі з ботом"));
+        listOfCommands.add(new BotCommand("/contact_manager", "Зв'язатися з нашим менеджером"));
         // 📄 Documentation and Examples
         listOfCommands.add(new BotCommand("/documentation", "Отримати документи з розділу Документація"));
         listOfCommands.add(new BotCommand("/examples", "Отримати приклади виконаних робіт"));
         // 📞 Contacts
         listOfCommands.add(new BotCommand("/contacts", "Отримати контактну інформацію"));
         listOfCommands.add(new BotCommand("/help_admin", "Отримати каманди адміністратора"));
-//        listOfCommands.add(new BotCommand("/contact_manager", "Написати нашому менеджеру"));
         try {
             botSender.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
             log.info("Bot commands successfully set.");

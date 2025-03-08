@@ -35,15 +35,20 @@ public class ButtonsSenderImpl implements ButtonsSender{
         KeyboardButton docsButton = new KeyboardButton("📄 Документація");
         KeyboardButton examplesButton = new KeyboardButton("📋 Приклади виконаних робіт");
         KeyboardButton contactsButton = new KeyboardButton("\uD83D\uDCDE Наші контакти");
+        KeyboardButton managerButton = new KeyboardButton("\uD83D\uDCE9 Зв'язатися з менеджером");
 
         // Creating rows for buttons
-        KeyboardRow row = new KeyboardRow();
-        row.add(docsButton);
-        row.add(examplesButton);
-        row.add(contactsButton);
+        KeyboardRow rowOne = new KeyboardRow();
+        rowOne.add(docsButton);
+        rowOne.add(examplesButton);
+
+        KeyboardRow rowTwo = new KeyboardRow();
+        rowTwo.add(contactsButton);
+        rowTwo.add(managerButton);
 
         List<KeyboardRow> keyboard = new ArrayList<>();
-        keyboard.add(row);
+        keyboard.add(rowOne);
+        keyboard.add(rowTwo);
         keyboardMarkup.setKeyboard(keyboard);
 
         botSender.sendKeyboardMarkupMessage(chatId,TextConstants.START_TEXT, keyboardMarkup);
@@ -63,12 +68,19 @@ public class ButtonsSenderImpl implements ButtonsSender{
         InlineKeyboardButton contactsButton = new InlineKeyboardButton("\uD83D\uDCDE Наші контакти");
         contactsButton.setCallbackData("contacts");  // Command to be executed
 
+        InlineKeyboardButton managerButton = new InlineKeyboardButton("\uD83D\uDCE9 Зв'язатися з менеджером");
+        managerButton.setCallbackData("contactManager");  // Command to be executed
+
         // Create a row for the buttons
-        List<InlineKeyboardButton> row = new ArrayList<>();
-        row.add(docsButton);
-        row.add(examplesButton);
-        row.add(contactsButton);
-        rows.add(row);
+        List<InlineKeyboardButton> rowOne = new ArrayList<>();
+        rowOne.add(docsButton);
+        rowOne.add(examplesButton);
+        rows.add(rowOne);
+
+        List<InlineKeyboardButton> rowTwo = new ArrayList<>();
+        rowTwo.add(contactsButton);
+        rowTwo.add(managerButton);
+        rows.add(rowTwo);
 
         inlineKeyboard.setKeyboard(rows);
         botSender.sendInlineKeyboardMarkupMessage(chatId, "⬇️ Виберіть одну з базових дій:", inlineKeyboard);
