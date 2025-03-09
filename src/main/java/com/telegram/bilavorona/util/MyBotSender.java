@@ -33,15 +33,11 @@ import java.util.List;
 @Component
 public class MyBotSender extends DefaultAbsSender {
     private final String botToken;
-    private final UserService userService;
-    private final ManagerBotSender managerBotSender;
 
     @Autowired
-    public MyBotSender(BotConfig config, UserService userService, ManagerBotSender managerBotSender) {
+    public MyBotSender(BotConfig config) {
         super(new DefaultBotOptions()); // DefaultBotOptions is still used here
         this.botToken = config.getToken();
-        this.userService = userService;
-        this.managerBotSender = managerBotSender;
     }
 
     @Override
@@ -54,26 +50,6 @@ public class MyBotSender extends DefaultAbsSender {
         message.setChatId(chatId);
         message.setText(text);
         executeMessage(message);
-    }
-
-    public void sendMessageToManager(String userInfo, Message msg) {
-        List<User> admins = userService.findAllAdmins();  // Fetch managers from DB
-
-        if(msg.hasText()) {
-            userInfo = userInfo + "\uD83D\uDCE9 *Надіслане повідомлення:* \n" + msg.getText();
-            for (User admin : admins) {
-                managerBotSender.sendMessage(admin.getChatId(), userInfo);
-                log.info("Message sent to manager (admin={})", admin.getChatId());
-            }
-            return;
-        }
-
-//        for (User admin : admins) {
-//            managerBotSender.sendMessage(admin.getChatId(), userInfo);
-//            managerBotSender.sendFileToManager(admin.getChatId(), msg);
-//            log.info("Message sent to manager (admin={})", admin.getChatId());
-//        }
-
     }
 
     public void sendKeyboardMarkupMessage(Long chatId, String text, ReplyKeyboardMarkup keyboardMarkup) {

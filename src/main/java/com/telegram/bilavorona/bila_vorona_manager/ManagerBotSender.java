@@ -1,12 +1,12 @@
 package com.telegram.bilavorona.bila_vorona_manager;
 
-import java.io.File;
-
 import com.telegram.bilavorona.config.BotConfig;
 import com.telegram.bilavorona.model.FileEntity;
 import com.telegram.bilavorona.model.User;
 import com.telegram.bilavorona.service.FileService;
+import com.telegram.bilavorona.service.TelegramFileService;
 import com.telegram.bilavorona.service.UserService;
+import com.telegram.bilavorona.util.MyBotSender;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,25 +20,38 @@ import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
+import org.telegram.telegrambots.meta.api.objects.File;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
 public class ManagerBotSender extends DefaultAbsSender {
     private final String managerBotToken;
+    private final UserService userService;
+    private final MyBotSender botSender;
+    private final TelegramFileService telegramFileService;
 
     @Autowired
-    public ManagerBotSender(BotManagerConfig botManagerConfig) {
+    public ManagerBotSender(BotManagerConfig botManagerConfig, UserService userService, MyBotSender botSender, TelegramFileService telegramFileService) {
         super(new DefaultBotOptions());
         this.managerBotToken = botManagerConfig.getToken();
+        this.userService = userService;
+        this.botSender = botSender;
+        this.telegramFileService = telegramFileService;
     }
 
     @Override
@@ -147,14 +160,95 @@ public class ManagerBotSender extends DefaultAbsSender {
         }
     }
 
-//    public void sendFileToManager(long chatId, Message msg) {
-//        if (msg.hasPhoto()) {
-//            managerFileHandler.saveFile(msg);
-//            FileEntity fileEntity = fileService.getFileByName("image_TEMP").get();
-//            managerFileHandler.sendFile(chatId, fileEntity);
-//            fileService.deleteFileByName("image_TEMP");
-//        }
-//    }
+    public void sendFileToManager(Long chatId, Message msg) {
+        if (msg.hasPhoto()) {
+            sendPhotoToManager(chatId, msg);
+        } else if (msg.hasDocument()) {
+            sendDocumentToManager(chatId, msg);
+        } else if (msg.hasVideo()) {
+            sendVideoToManager(chatId, msg);
+        }
+    }
+
+    private void sendPhotoToManager(Long chatId, Message msg) {
+        String fileId = msg.getPhoto().get(msg.getPhoto().size() - 1).getFileId();
+        downloadAndUploadFile(chatId, fileId, msg.getCaption(),"photo");
+    }
+
+    private void sendDocumentToManager(Long chatId, Message msg) {
+        String fileId = msg.getDocument().getFileId();
+        downloadAndUploadFile(chatId, fileId, msg.getCaption(),"document");
+    }
+
+    private void sendVideoToManager(Long chatId, Message msg) {
+        String fileId = msg.getVideo().getFileId();
+        downloadAndUploadFile(chatId, fileId, msg.getCaption(),"video");
+    }
+
+    private void downloadAndUploadFile(Long chatId, String fileId, String caption, String fileType) {
+        try {
+            GetFile getFile = new GetFile(fileId);
+            File file = botSender.execute(getFile);
+
+            if (file != null && file.getFilePath() != null) {
+                URL url = new URL("https://api.telegram.org/file/bot" + botSender.getBotToken() + "/" + file.getFilePath());
+
+                String originalFileName = file.getFilePath().substring(file.getFilePath().lastIndexOf('/') + 1);
+                String uniqueFileName = UUID.randomUUID() + "_" + originalFileName;
+                Path downloadPath = Paths.get("temp", uniqueFileName);
+
+                Files.createDirectories(Paths.get("temp"));
+                Files.copy(url.openStream(), downloadPath);
+
+                InputFile inputFile = new InputFile(downloadPath.toFile());
+
+                if (fileType.equals("photo")) {
+                    SendPhoto sendPhoto = new SendPhoto(String.valueOf(chatId), inputFile);
+                    sendPhoto.setCaption(caption);
+                    execute(sendPhoto);
+                } else if (fileType.equals("document")) {
+                    SendDocument sendDocument = new SendDocument(String.valueOf(chatId), inputFile);
+                    sendDocument.setCaption(caption);
+                    execute(sendDocument);
+                } else if (fileType.equals("video")) {
+                    SendVideo sendVideo = new SendVideo(String.valueOf(chatId), inputFile);
+                    sendVideo.setCaption(caption);
+                    execute(sendVideo);
+                }
+
+                Files.delete(downloadPath);
+            } else {
+                log.error("File or file path is null");
+            }
+
+        } catch (TelegramApiException | MalformedURLException e) {
+            log.error("Error downloading or uploading file: {}", e.getMessage());
+        } catch (IOException e) {
+            log.error("Error with IO operation {}", e.getMessage());
+        } catch (Exception e) {
+            log.error("An unexpected error occurred: {}", e.getMessage());
+        }
+    }
+
+    public void sendMessageToManager(String userInfo, Message msg) {
+        List<User> admins = userService.findAllAdmins();  // Fetch managers from DB
+        String textOfMessage;
+        if(msg.hasText()) {
+            textOfMessage = userInfo + "\uD83D\uDCE9 *Надіслане повідомлення:* \n" + msg.getText();
+            for (User admin : admins) {
+                sendMessage(admin.getChatId(), textOfMessage);
+                log.info("Message sent to manager (admin={})", admin.getChatId());
+            }
+        } else {
+            textOfMessage = userInfo + "\uD83D\uDCE9 *Надісланий файл:*";
+            for (User admin : admins) {
+                sendMessage(admin.getChatId(), textOfMessage);
+                sendFileToManager(admin.getChatId(), msg);
+                log.info("Message sent to manager (admin={})", admin.getChatId());
+            }
+        }
+
+    }
 
 
 }

@@ -90,7 +90,7 @@ public class BotCommandHandlerImpl implements BotCommandHandler {
         );
 
         log.info("Sending message to manager from chatId = {}", chatId);
-        botSender.sendMessageToManager(userInfo, msg);  // Send message to manager
+        managerBotSender.sendMessageToManager(userInfo, msg);  // Send message to manager
         botSender.sendMessage(chatId, "Повідомлення успішно надіслано менеджеру");
 
         userStateService.clearCommandState(chatId);  // Reset state after processing
