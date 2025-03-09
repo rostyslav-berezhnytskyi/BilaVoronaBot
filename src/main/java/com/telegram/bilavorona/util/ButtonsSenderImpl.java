@@ -1,14 +1,17 @@
 package com.telegram.bilavorona.util;
 
+import com.telegram.bilavorona.bila_vorona_manager.ManagerBotSender;
 import com.telegram.bilavorona.model.FileGroup;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,11 +22,13 @@ import java.util.List;
 public class ButtonsSenderImpl implements ButtonsSender{
     private final MyBotSender botSender;
     private final CommandValidator commandValidator;
+    private final ManagerBotSender managerBotSender;
 
     @Autowired
-    public ButtonsSenderImpl(MyBotSender botSender, CommandValidator commandValidator) {
+    public ButtonsSenderImpl(MyBotSender botSender, CommandValidator commandValidator, ManagerBotSender managerBotSender) {
         this.botSender = botSender;
         this.commandValidator = commandValidator;
+        this.managerBotSender = managerBotSender;
     }
 
     @Override
@@ -125,5 +130,29 @@ public class ButtonsSenderImpl implements ButtonsSender{
         markup.setKeyboard(rows);
 
         botSender.sendInlineKeyboardMarkupMessage(chatId, "До якої групи ви хочете віднести цей файл?", markup);
+    }
+
+    @Override
+    public void sendContactUserButton(long userId, long adminId) {
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        InlineKeyboardButton contactButton = new InlineKeyboardButton("📞 Зв'язатися з користувачем");
+        contactButton.setUrl("tg://user?id=" + userId);  // Direct link to user's profile
+
+        // Add button to the markup
+        List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
+        keyboard.add(Collections.singletonList(contactButton));
+        markup.setKeyboard(keyboard);
+
+        // Create and send message with inline button
+        SendMessage reply = new SendMessage();
+        reply.setChatId(String.valueOf(adminId));
+        reply.setText("Натисніть кнопку нижче, щоб зв'язатися з користувачем:");
+        reply.setReplyMarkup(markup);
+
+        try {
+            managerBotSender.execute(reply);
+        } catch (TelegramApiException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

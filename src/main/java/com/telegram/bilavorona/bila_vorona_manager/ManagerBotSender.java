@@ -42,15 +42,13 @@ import java.util.UUID;
 public class ManagerBotSender extends DefaultAbsSender {
     private final String managerBotToken;
     private final UserService userService;
-    private final MyBotSender botSender;
     private final TelegramFileService telegramFileService;
 
     @Autowired
-    public ManagerBotSender(BotManagerConfig botManagerConfig, UserService userService, MyBotSender botSender, TelegramFileService telegramFileService) {
+    public ManagerBotSender(BotManagerConfig botManagerConfig, UserService userService, TelegramFileService telegramFileService) {
         super(new DefaultBotOptions());
         this.managerBotToken = botManagerConfig.getToken();
         this.userService = userService;
-        this.botSender = botSender;
         this.telegramFileService = telegramFileService;
     }
 
@@ -61,7 +59,7 @@ public class ManagerBotSender extends DefaultAbsSender {
 
     public void sendMessage(Long chatId, String text) {
         SendMessage message = new SendMessage();
-        message.setChatId(chatId);
+        message.setChatId(chatId.toString());
         message.setText(text);
         executeMessage(message);
     }
@@ -84,74 +82,6 @@ public class ManagerBotSender extends DefaultAbsSender {
         executeMessage(message);
     }
 
-    public boolean sendAll(Long chatId, Message msg) {
-        if (msg.hasText()) {
-            sendMessage(chatId, msg.getText());
-            return true;
-        } else if (msg.hasVideo()) {
-            msg.getVideo().getFileId();
-            sendVideo(chatId, msg.getVideo().getFileId(), msg.getCaption());
-            return true;
-        } else if (msg.hasPhoto()) {
-            String fileId = msg.getPhoto().get(msg.getPhoto().size() - 1).getFileId();
-            sendPhoto(chatId, fileId, msg.getCaption());
-            return true;
-        } else if (msg.hasDocument()) {
-            sendDocument(chatId, msg.getDocument().getFileId(), msg.getCaption());
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    public void sendDocument(Long chatId, String fileId, String caption) {
-        SendDocument document = new SendDocument();
-        document.setChatId(chatId);
-        document.setDocument(new InputFile(fileId));
-        document.setCaption(caption);
-        executeDocument(document);
-    }
-
-    public void sendPhoto(Long chatId, String fileId, String caption) {
-        SendPhoto photo = new SendPhoto();
-        photo.setChatId(chatId);
-        photo.setPhoto(new InputFile(fileId));
-        photo.setCaption(caption);
-        executePhoto(photo);
-    }
-
-    public void sendVideo(Long chatId, String fileId, String caption) {
-        SendVideo video = new SendVideo();
-        video.setChatId(chatId);
-        video.setVideo(new InputFile(fileId));
-        video.setCaption(caption);
-        executeVideo(video);
-    }
-
-    private void executeDocument(SendDocument document) {
-        try {
-            this.execute(document);
-        } catch (TelegramApiException e) {
-            log.error("Failed to send document: {}", e.getMessage());
-        }
-    }
-
-    private void executePhoto(SendPhoto photo) {
-        try {
-            this.execute(photo);
-        } catch (TelegramApiException e) {
-            log.error("Failed to send photo: {}", e.getMessage());
-        }
-    }
-
-    private void executeVideo(SendVideo video) {
-        try {
-            this.execute(video);
-        } catch (TelegramApiException e) {
-            log.error("Failed to send video: {}", e.getMessage());
-        }
-    }
-
     private void executeMessage(BotApiMethod<?> message) {
         try {
             this.execute(message);
@@ -160,6 +90,23 @@ public class ManagerBotSender extends DefaultAbsSender {
         }
     }
 
+    // 📌 Send message or file based on message content
+    public void sendMessageToManager(long managerId, String userInfo, Message msg) {
+        String textOfMessage;
+
+        if (msg.hasText()) {
+            textOfMessage = userInfo + "\uD83D\uDCE9 *Надіслане повідомлення:* \n" + msg.getText();
+            sendMessage(managerId, textOfMessage);
+            log.info("Message sent to manager (admin={})", managerId);
+        } else {
+            textOfMessage = userInfo + "\uD83D\uDCE9 *Надісланий файл:*";
+            sendMessage(managerId, textOfMessage);
+            sendFileToManager(managerId, msg);
+            log.info("Message sent to manager (admin={})", managerId);
+        }
+    }
+
+    // 📌 Determine file type and call respective send method
     public void sendFileToManager(Long chatId, Message msg) {
         if (msg.hasPhoto()) {
             sendPhotoToManager(chatId, msg);
@@ -170,84 +117,54 @@ public class ManagerBotSender extends DefaultAbsSender {
         }
     }
 
+    // 📦 Send photo using TelegramFileService
     private void sendPhotoToManager(Long chatId, Message msg) {
         String fileId = msg.getPhoto().get(msg.getPhoto().size() - 1).getFileId();
-        downloadAndUploadFile(chatId, fileId, msg.getCaption(),"photo");
+        sendMedia(chatId, fileId, msg.getCaption(), "photo");
     }
 
+    // 📄 Send document using TelegramFileService
     private void sendDocumentToManager(Long chatId, Message msg) {
         String fileId = msg.getDocument().getFileId();
-        downloadAndUploadFile(chatId, fileId, msg.getCaption(),"document");
+        sendMedia(chatId, fileId, msg.getCaption(), "document");
     }
 
+    // 🎥 Send video using TelegramFileService
     private void sendVideoToManager(Long chatId, Message msg) {
         String fileId = msg.getVideo().getFileId();
-        downloadAndUploadFile(chatId, fileId, msg.getCaption(),"video");
+        sendMedia(chatId, fileId, msg.getCaption(), "video");
     }
 
-    private void downloadAndUploadFile(Long chatId, String fileId, String caption, String fileType) {
-        try {
-            GetFile getFile = new GetFile(fileId);
-            File file = botSender.execute(getFile);
-
-            if (file != null && file.getFilePath() != null) {
-                URL url = new URL("https://api.telegram.org/file/bot" + botSender.getBotToken() + "/" + file.getFilePath());
-
-                String originalFileName = file.getFilePath().substring(file.getFilePath().lastIndexOf('/') + 1);
-                String uniqueFileName = UUID.randomUUID() + "_" + originalFileName;
-                Path downloadPath = Paths.get("temp", uniqueFileName);
-
-                Files.createDirectories(Paths.get("temp"));
-                Files.copy(url.openStream(), downloadPath);
-
-                InputFile inputFile = new InputFile(downloadPath.toFile());
-
-                if (fileType.equals("photo")) {
-                    SendPhoto sendPhoto = new SendPhoto(String.valueOf(chatId), inputFile);
-                    sendPhoto.setCaption(caption);
-                    execute(sendPhoto);
-                } else if (fileType.equals("document")) {
-                    SendDocument sendDocument = new SendDocument(String.valueOf(chatId), inputFile);
-                    sendDocument.setCaption(caption);
-                    execute(sendDocument);
-                } else if (fileType.equals("video")) {
-                    SendVideo sendVideo = new SendVideo(String.valueOf(chatId), inputFile);
-                    sendVideo.setCaption(caption);
-                    execute(sendVideo);
+    // 🌟 Reusable method to send any media type
+    private void sendMedia(Long chatId, String fileId, String caption, String fileType) {
+        InputFile inputFile = telegramFileService.downloadFile(fileId);
+        if (inputFile != null) {
+            try {
+                switch (fileType) {
+                    case "photo" -> {
+                        SendPhoto sendPhoto = new SendPhoto(chatId.toString(), inputFile);
+                        sendPhoto.setCaption(Optional.ofNullable(caption).orElse(""));
+                        execute(sendPhoto);
+                    }
+                    case "document" -> {
+                        SendDocument sendDocument = new SendDocument(chatId.toString(), inputFile);
+                        sendDocument.setCaption(Optional.ofNullable(caption).orElse(""));
+                        execute(sendDocument);
+                    }
+                    case "video" -> {
+                        SendVideo sendVideo = new SendVideo(chatId.toString(), inputFile);
+                        sendVideo.setCaption(Optional.ofNullable(caption).orElse(""));
+                        execute(sendVideo);
+                    }
                 }
-
-                Files.delete(downloadPath);
-            } else {
-                log.error("File or file path is null");
-            }
-
-        } catch (TelegramApiException | MalformedURLException e) {
-            log.error("Error downloading or uploading file: {}", e.getMessage());
-        } catch (IOException e) {
-            log.error("Error with IO operation {}", e.getMessage());
-        } catch (Exception e) {
-            log.error("An unexpected error occurred: {}", e.getMessage());
-        }
-    }
-
-    public void sendMessageToManager(String userInfo, Message msg) {
-        List<User> admins = userService.findAllAdmins();  // Fetch managers from DB
-        String textOfMessage;
-        if(msg.hasText()) {
-            textOfMessage = userInfo + "\uD83D\uDCE9 *Надіслане повідомлення:* \n" + msg.getText();
-            for (User admin : admins) {
-                sendMessage(admin.getChatId(), textOfMessage);
-                log.info("Message sent to manager (admin={})", admin.getChatId());
+            } catch (TelegramApiException e) {
+                log.error("Failed to send {}: {}", fileType, e.getMessage());
+            } finally {
+                telegramFileService.deleteTempFile(inputFile);
             }
         } else {
-            textOfMessage = userInfo + "\uD83D\uDCE9 *Надісланий файл:*";
-            for (User admin : admins) {
-                sendMessage(admin.getChatId(), textOfMessage);
-                sendFileToManager(admin.getChatId(), msg);
-                log.info("Message sent to manager (admin={})", admin.getChatId());
-            }
+            log.error("Failed to download file for sending as {}", fileType);
         }
-
     }
 
 

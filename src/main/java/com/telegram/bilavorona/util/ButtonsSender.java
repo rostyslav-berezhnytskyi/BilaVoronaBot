@@ -8,4 +8,6 @@ public interface ButtonsSender {
     void sendRoleSelectionButtons(long chatId, String[] commandParts);
 
     void sendGroupSelectionButtons(Long chatId);
+
+    void sendContactUserButton(long userId, long adminId);
 }

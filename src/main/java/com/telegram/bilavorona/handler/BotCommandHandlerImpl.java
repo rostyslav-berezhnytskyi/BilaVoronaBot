@@ -9,7 +9,15 @@ import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 
 @Slf4j
@@ -78,19 +86,26 @@ public class BotCommandHandlerImpl implements BotCommandHandler {
 
         // Fetch user info
         User user = userService.findById(chatId).get();
+        boolean usernameFlag = user.getUserName() != null && !user.getUserName().isEmpty();
         String userInfo = String.format(
                 "🧑‍💼 *Користувач:*\n" +
                         "Ім'я: %s %s\n" +
-                        "Username: @%s\n" +
+                        "Username: %s\n" +
                         "ID: %d\n\n",
                 user.getFirstName() != null ? user.getFirstName() : "Невідомий",
                 user.getLastName() != null ? user.getLastName() : "",
-                user.getUserName() != null ? user.getUserName() : "Невідомий",
+                usernameFlag ? "@" + user.getUserName() : "Невідомий",
                 chatId
         );
 
         log.info("Sending message to manager from chatId = {}", chatId);
-        managerBotSender.sendMessageToManager(userInfo, msg);  // Send message to manager
+
+        List<User> admins = userService.findAllAdmins();
+        for (User admin : admins) {
+            managerBotSender.sendMessageToManager(admin.getChatId(), userInfo, msg);  // Send message to manager
+            if (!usernameFlag) buttonsSender.sendContactUserButton(chatId, admin.getChatId());
+        }
+
         botSender.sendMessage(chatId, "Повідомлення успішно надіслано менеджеру");
 
         userStateService.clearCommandState(chatId);  // Reset state after processing
