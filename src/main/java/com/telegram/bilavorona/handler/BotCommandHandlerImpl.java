@@ -83,31 +83,42 @@ public class BotCommandHandlerImpl implements BotCommandHandler {
     @Override
     public void sendToManager(Message msg) {
         Long chatId = msg.getChatId();
+        log.info("Sending message to manager from chatId = {}", chatId);
 
-        // Fetch user info
-        User user = userService.findById(chatId).get();
-        boolean usernameFlag = user.getUserName() != null && !user.getUserName().isEmpty();
+        try {
+            User user = userService.findById(chatId).get();
+            boolean usernameFlag = user.getUserName() != null && !user.getUserName().isEmpty();
+            boolean textMessage = msg.hasText();
+
+            String userInfo = formTextMessage(user, usernameFlag, msg);
+            List<User> admins = userService.findAllAdmins();
+            for (User admin : admins) {
+                managerBotSender.sendMessage(admin.getChatId(), userInfo);  // Send message to manager
+                if (!textMessage) managerBotSender.sendFileToManager(admin.getChatId(), msg);
+                if (!usernameFlag) buttonsSender.sendContactUserButton(chatId, admin.getChatId());
+            }
+
+            botSender.sendMessage(chatId, "Повідомлення успішно надіслано менеджеру");
+        } finally {
+            userStateService.clearCommandState(chatId);  // Reset state after processing
+        }
+    }
+
+    private String formTextMessage(User user, boolean usernameFlag, Message msg) {
+        String textOfMessage = msg.hasText() ? "\uD83D\uDCE9 *Надіслане повідомлення:* \n" + msg.getText(): "\uD83D\uDCE9 *Надісланий файл:*";
+
         String userInfo = String.format(
                 "🧑‍💼 *Користувач:*\n" +
                         "Ім'я: %s %s\n" +
                         "Username: %s\n" +
-                        "ID: %d\n\n",
+                        "ID: %d\n\n" +
+                        "%s",
                 user.getFirstName() != null ? user.getFirstName() : "Невідомий",
                 user.getLastName() != null ? user.getLastName() : "",
                 usernameFlag ? "@" + user.getUserName() : "Невідомий",
-                chatId
-        );
+                user.getChatId(),
+                textOfMessage);
 
-        log.info("Sending message to manager from chatId = {}", chatId);
-
-        List<User> admins = userService.findAllAdmins();
-        for (User admin : admins) {
-            managerBotSender.sendMessageToManager(admin.getChatId(), userInfo, msg);  // Send message to manager
-            if (!usernameFlag) buttonsSender.sendContactUserButton(chatId, admin.getChatId());
-        }
-
-        botSender.sendMessage(chatId, "Повідомлення успішно надіслано менеджеру");
-
-        userStateService.clearCommandState(chatId);  // Reset state after processing
+        return userInfo;
     }
 }

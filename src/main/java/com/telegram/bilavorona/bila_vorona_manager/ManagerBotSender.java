@@ -90,22 +90,6 @@ public class ManagerBotSender extends DefaultAbsSender {
         }
     }
 
-    // 📌 Send message or file based on message content
-    public void sendMessageToManager(long managerId, String userInfo, Message msg) {
-        String textOfMessage;
-
-        if (msg.hasText()) {
-            textOfMessage = userInfo + "\uD83D\uDCE9 *Надіслане повідомлення:* \n" + msg.getText();
-            sendMessage(managerId, textOfMessage);
-            log.info("Message sent to manager (admin={})", managerId);
-        } else {
-            textOfMessage = userInfo + "\uD83D\uDCE9 *Надісланий файл:*";
-            sendMessage(managerId, textOfMessage);
-            sendFileToManager(managerId, msg);
-            log.info("Message sent to manager (admin={})", managerId);
-        }
-    }
-
     // 📌 Determine file type and call respective send method
     public void sendFileToManager(Long chatId, Message msg) {
         if (msg.hasPhoto()) {
