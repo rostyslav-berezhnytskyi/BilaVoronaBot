@@ -9,6 +9,8 @@ public interface BotCommandHandler {
 
     void defaultCom(long chatId);
 
+    void exit(long chatId);
+
     void contacts(long chatId);
 
     void helpAdmin(long chatId);

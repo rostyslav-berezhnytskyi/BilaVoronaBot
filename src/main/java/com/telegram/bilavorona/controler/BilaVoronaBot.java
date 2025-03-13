@@ -102,6 +102,7 @@ public class BilaVoronaBot implements LongPollingBot {
                 case "/help" -> botCommandHandler.help(chatId);
                 case "/help_admin" -> botCommandHandler.helpAdmin(chatId);
                 case "/contact_manager", "\uD83D\uDCE9" -> userStateService.setCommandState(chatId, "contactManager");
+                case "/exit" -> botCommandHandler.exit(chatId);
 
                 // Users
                 case "/get_all_users" -> userHandler.getAllUsers(chatId);
@@ -143,6 +144,7 @@ public class BilaVoronaBot implements LongPollingBot {
         // 📞 Contacts
         listOfCommands.add(new BotCommand("/contacts", "Отримати контактну інформацію"));
         listOfCommands.add(new BotCommand("/help_admin", "Отримати каманди адміністратора"));
+        listOfCommands.add(new BotCommand("/exit", "Скасування віправки всіх активних команд"));
         try {
             botSender.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
             log.info("Bot commands successfully set.");

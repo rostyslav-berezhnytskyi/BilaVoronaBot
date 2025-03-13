@@ -18,4 +18,6 @@ public interface UserHandler {
     void sendForAllUsers(Message msg);
 
     void sendForUsername(Message msg, String username);
+
+
 }

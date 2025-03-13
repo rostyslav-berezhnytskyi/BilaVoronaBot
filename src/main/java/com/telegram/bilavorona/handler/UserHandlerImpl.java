@@ -126,36 +126,52 @@ public class UserHandlerImpl implements UserHandler {
     public void sendForAllUsers(Message msg) {
         Long chatId = msg.getChatId();
         log.info("Called the command to send text or file to all users of the bot, in chatId = {}", chatId);
-        if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
+        try {
+            if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
 
-        List<User> users = userService.findAll();  // Get all users from DB
-        boolean flag = true;
-        for (User user : users) {
-            if(!botSender.sendAll(user.getChatId(), msg)) {
-                botSender.sendMessage(chatId, "Невідомий тип файлу, який неможливо надіслати всім користувачам");
-                flag = false;
-                break;
+            if (msg.getText().equals("/exit")) {
+                botSender.sendMessage(chatId, "Надсилання повідомлення всім користувачам скасовано");
+                return;
             }
+
+            List<User> users = userService.findAll();  // Get all users from DB
+            boolean flag = true;
+            for (User user : users) {
+                if (!botSender.sendAll(user.getChatId(), msg)) {
+                    botSender.sendMessage(chatId, "Невідомий тип файлу, який неможливо надіслати всім користувачам");
+                    flag = false;
+                    break;
+                }
+            }
+            if (flag) botSender.sendMessage(chatId, "Повідомлення успішно надіслано всім користувачам боту");
+        } finally {
+            userStateService.clearCommandState(chatId);  // Reset state after processing
         }
-        if(flag) botSender.sendMessage(chatId, "Повідомлення успішно надіслано всім користувачам боту");
-        userStateService.clearCommandState(chatId);  // Reset state after processing
     }
 
     @Override
     public void sendForUsername(Message msg, String username) {
         Long chatId = msg.getChatId();
         log.info("Called the command to send text or file to user of the bot, in chatId = {}", chatId);
-        if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
+        try {
+            if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
 
-        if(!checkUsernameInDB(chatId, username)) return;
-        Long chatIdUser = userService.findByUsername(username).get().getChatId();
+            if (msg.getText().equals("/exit")) {
+                botSender.sendMessage(chatId, "Надсилання повідомлення всім користувачам скасовано");
+                return;
+            }
 
-        if(botSender.sendAll(chatIdUser, msg)) {
-            botSender.sendMessage(chatId, "Повідомлення успішно надіслано користувачу " + username);
-        } else {
-            botSender.sendMessage(chatId, "Помилка у надсиланні повідомлення користувачу " + username + " невідомий тип файлу");
+            if (!checkUsernameInDB(chatId, username)) return;
+            Long chatIdUser = userService.findByUsername(username).get().getChatId();
+
+            if (botSender.sendAll(chatIdUser, msg)) {
+                botSender.sendMessage(chatId, "Повідомлення успішно надіслано користувачу " + username);
+            } else {
+                botSender.sendMessage(chatId, "Помилка у надсиланні повідомлення користувачу " + username + " невідомий тип файлу");
+            }
+        } finally {
+            userStateService.clearCommandState(chatId);  // Reset state after processing
         }
-        userStateService.clearCommandState(chatId);  // Reset state after processing
     }
 
     private boolean checkUsernameInDB(long chatId, String username) {

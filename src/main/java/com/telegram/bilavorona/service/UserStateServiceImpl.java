@@ -39,9 +39,9 @@ public class UserStateServiceImpl implements UserStateService{
     private void sendRespondToCommand(Long chatId, String command) {
         String[] commandPart = command.split(" ");
         switch (commandPart[0]) {
-            case "sendForAllUsers" -> botSender.sendMessage(chatId, "Вкажіть текст чи файл що буде надісланий всім користувачам");
-            case "sendForUsername" -> botSender.sendMessage(chatId, "Вкажіть текст чи файл що буде надісланий " + commandPart[1]);
-            case "contactManager" -> botSender.sendMessage(chatId, "Напишіть своє запитання або надішліть файл, і ми передамо його менеджеру.");
+            case "sendForAllUsers" -> botSender.sendMessage(chatId, "Вкажіть текст чи файл що буде надісланий всім користувачам. Або напишіть команду /exit для відміни надсилання повідомлення");
+            case "sendForUsername" -> botSender.sendMessage(chatId, "Вкажіть текст чи файл що буде надісланий " + commandPart[1] + " Або напишіть команду /exit для відміни надсилання повідомлення");
+            case "contactManager" -> botSender.sendMessage(chatId, "Напишіть своє запитання або надішліть файл, і ми передамо його менеджеру. Або напишіть команду /exit для відміни надсилання повідомлення");
         }
     }
 }

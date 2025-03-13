@@ -81,6 +81,12 @@ public class BotCommandHandlerImpl implements BotCommandHandler {
     }
 
     @Override
+    public void exit(long chatId) {
+        userStateService.clearCommandState(chatId);
+        botSender.sendMessage(chatId, "Відправка всіх активних команд скасована");
+    }
+
+    @Override
     public void sendToManager(Message msg) {
         Long chatId = msg.getChatId();
         log.info("Sending message to manager from chatId = {}", chatId);
@@ -89,6 +95,10 @@ public class BotCommandHandlerImpl implements BotCommandHandler {
             User user = userService.findById(chatId).get();
             boolean usernameFlag = user.getUserName() != null && !user.getUserName().isEmpty();
             boolean textMessage = msg.hasText();
+            if(textMessage && msg.getText().equals("/exit")) {
+                botSender.sendMessage(chatId, "Надсилання повідомлення менеджеру відмінено");
+                return;
+            }
 
             String userInfo = formTextMessage(user, usernameFlag, msg);
             List<User> admins = userService.findAllAdmins();
@@ -100,9 +110,11 @@ public class BotCommandHandlerImpl implements BotCommandHandler {
 
             botSender.sendMessage(chatId, "Повідомлення успішно надіслано менеджеру");
         } finally {
-            userStateService.clearCommandState(chatId);  // Reset state after processing
+            userStateService.clearCommandState(chatId);
         }
     }
+
+
 
     private String formTextMessage(User user, boolean usernameFlag, Message msg) {
         String textOfMessage = msg.hasText() ? "\uD83D\uDCE9 *Надіслане повідомлення:* \n" + msg.getText(): "\uD83D\uDCE9 *Надісланий файл:*";

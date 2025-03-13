@@ -19,7 +19,7 @@ import java.util.List;
 
 @Slf4j
 @Component
-public class ButtonsSenderImpl implements ButtonsSender{
+public class ButtonsSenderImpl implements ButtonsSender {
     private final MyBotSender botSender;
     private final CommandValidator commandValidator;
     private final ManagerBotSender managerBotSender;
@@ -56,7 +56,7 @@ public class ButtonsSenderImpl implements ButtonsSender{
         keyboard.add(rowTwo);
         keyboardMarkup.setKeyboard(keyboard);
 
-        botSender.sendKeyboardMarkupMessage(chatId,TextConstants.START_TEXT, keyboardMarkup);
+        botSender.sendKeyboardMarkupMessage(chatId, TextConstants.START_TEXT, keyboardMarkup);
     }
 
     @Override
@@ -95,8 +95,8 @@ public class ButtonsSenderImpl implements ButtonsSender{
     public void sendRoleSelectionButtons(long chatId, String[] commandParts) {
         log.info("Showing role selection buttons in chatId = {}", chatId);
 
-        if (!commandValidator.checkCom(chatId, commandParts, 2,
-                "Будь ласка вкажіть юзернейм. Приклад: /change_role @username")) return;
+        if (!commandValidator.checkCom(chatId, commandParts, 2, "Будь ласка вкажіть юзернейм. Приклад: /change_role @username"))
+            return;
 
         String username = commandParts[1];
 
@@ -138,21 +138,11 @@ public class ButtonsSenderImpl implements ButtonsSender{
         InlineKeyboardButton contactButton = new InlineKeyboardButton("📞 Зв'язатися з користувачем");
         contactButton.setUrl("tg://user?id=" + userId);  // Direct link to user's profile
 
-        // Add button to the markup
         List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
         keyboard.add(Collections.singletonList(contactButton));
         markup.setKeyboard(keyboard);
 
         // Create and send message with inline button
-        SendMessage reply = new SendMessage();
-        reply.setChatId(String.valueOf(adminId));
-        reply.setText("Натисніть кнопку нижче, щоб зв'язатися з користувачем:");
-        reply.setReplyMarkup(markup);
-
-        try {
-            managerBotSender.execute(reply);
-        } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
-        }
+        managerBotSender.sendInlineKeyboardMarkupMessage(adminId, "Натисніть кнопку нижче, щоб зв'язатися з користувачем:", markup);
     }
 }
