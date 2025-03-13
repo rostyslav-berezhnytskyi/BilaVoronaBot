@@ -42,6 +42,7 @@ public class UserStateServiceImpl implements UserStateService{
             case "sendForAllUsers" -> botSender.sendMessage(chatId, "Вкажіть текст чи файл що буде надісланий всім користувачам. Або напишіть команду /exit для відміни надсилання повідомлення");
             case "sendForUsername" -> botSender.sendMessage(chatId, "Вкажіть текст чи файл що буде надісланий " + commandPart[1] + " Або напишіть команду /exit для відміни надсилання повідомлення");
             case "contactManager" -> botSender.sendMessage(chatId, "Напишіть своє запитання або надішліть файл, і ми передамо його менеджеру. Або напишіть команду /exit для відміни надсилання повідомлення");
+            case "waiting_for_phone" -> botSender.sendMessage(chatId, "Для отримання знижки у 5% на продукцію БілаВорона, будь ласка, вкажіть ваш номер телефона у наступному повідомленні.");
         }
     }
 }

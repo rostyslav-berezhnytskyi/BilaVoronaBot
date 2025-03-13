@@ -174,6 +174,27 @@ public class UserHandlerImpl implements UserHandler {
         }
     }
 
+    @Override
+    public void savePhoneNumber(Message msg) {
+        String phoneNumber = msg.getText().trim();
+        long chatId = msg.getChatId();
+
+        if (isValidPhoneNumber(phoneNumber)) {
+            Optional<User> optionalUser = userService.findById(chatId);
+            if (optionalUser.isPresent()) {
+                User user = optionalUser.get();
+                user.setPhoneNumber(phoneNumber);
+                user.setDiscount(5);
+                userService.saveUser(user);
+
+                botSender.sendMessage(chatId, "Дякую за наданий номер телефону. Ви отримали знижку у 5%!");
+                userStateService.clearCommandState(chatId);
+            }
+        } else {
+            botSender.sendMessage(chatId, "Будь ласка, введіть коректний номер телефону, або скасуйте цю дію скориставшись командою /exit");
+        }
+    }
+
     private boolean checkUsernameInDB(long chatId, String username) {
         Optional<User> userOpt = userService.findByUsername(username);
         if (userOpt.isEmpty()) {
@@ -182,5 +203,11 @@ public class UserHandlerImpl implements UserHandler {
             return false;
         }
         return true;
+    }
+
+    private boolean isValidPhoneNumber(String phoneNumber) {
+        return phoneNumber.matches("\\+?38\\d{10}") ||  // +380XXXXXXXXX
+                phoneNumber.matches("\\d{10}") ||       // 0XXXXXXXXX
+                phoneNumber.matches("\\d{3}-\\d{2}-\\d{2}");  // XXX-XX-XX
     }
 }

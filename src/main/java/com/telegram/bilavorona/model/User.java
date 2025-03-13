@@ -23,4 +23,6 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role;
     private String languageCode;
+    private String phoneNumber;
+    private int discount = 0;    // Default discount is 0%
 }

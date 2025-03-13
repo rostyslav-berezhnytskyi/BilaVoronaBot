@@ -124,11 +124,13 @@ public class BotCommandHandlerImpl implements BotCommandHandler {
                         "Ім'я: %s %s\n" +
                         "Username: %s\n" +
                         "ID: %d\n\n" +
+                        "Телефон: %s" +
                         "%s",
                 user.getFirstName() != null ? user.getFirstName() : "Невідомий",
                 user.getLastName() != null ? user.getLastName() : "",
                 usernameFlag ? "@" + user.getUserName() : "Невідомий",
                 user.getChatId(),
+                user.getPhoneNumber() != null ? user.getPhoneNumber() : "Невідомий",
                 textOfMessage);
 
         return userInfo;

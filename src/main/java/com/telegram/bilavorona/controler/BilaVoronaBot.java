@@ -68,6 +68,7 @@ public class BilaVoronaBot implements LongPollingBot {
                 case "file_group" -> fileCommandHandler.assignFileGroup(update.getCallbackQuery());
                 case "change_role" -> userHandler.handleRoleSelection(update.getCallbackQuery());
                 case "contactManager" -> userStateService.setCommandState(chatId, "contactManager");
+                case "get_discount" -> userStateService.setCommandState(chatId, "waiting_for_phone");
                 default -> botSender.sendMessage(chatId, "Невідома callback команда");
             }
             return;
@@ -77,12 +78,18 @@ public class BilaVoronaBot implements LongPollingBot {
         if (msg == null) return;  // Check for null to avoid NullPointerException
         Long chatId = msg.getChatId();
 
+        if (msg.hasText() && msg.getText().equals("/exit")) {
+            botCommandHandler.exit(chatId);
+            return;
+        }
+
         if (userStateService.hasActiveCommand(chatId)) { // Check if the user has an active command
             String[] command = userStateService.getCommandState(chatId).split(" ");  // Split command and parameters
             switch (command[0]) {
                 case "sendForAllUsers" -> userHandler.sendForAllUsers(msg);
                 case "sendForUsername" -> userHandler.sendForUsername(msg, command[1]);
                 case "contactManager" -> botCommandHandler.sendToManager(msg);
+                case "waiting_for_phone" -> userHandler.savePhoneNumber(msg);
                 default -> botSender.sendMessage(chatId, "Невідома active команда");
             }
             return;
@@ -102,7 +109,6 @@ public class BilaVoronaBot implements LongPollingBot {
                 case "/help" -> botCommandHandler.help(chatId);
                 case "/help_admin" -> botCommandHandler.helpAdmin(chatId);
                 case "/contact_manager", "\uD83D\uDCE9" -> userStateService.setCommandState(chatId, "contactManager");
-                case "/exit" -> botCommandHandler.exit(chatId);
 
                 // Users
                 case "/get_all_users" -> userHandler.getAllUsers(chatId);
@@ -110,7 +116,8 @@ public class BilaVoronaBot implements LongPollingBot {
                 case "/change_role" -> buttonsSender.sendRoleSelectionButtons(chatId, commandParts);
                 case "/send_for_all_user" -> userStateService.setCommandState(chatId, "sendForAllUsers");
                 case "/send_for_username" -> {
-                    if (!commandValidator.checkCom(chatId, commandParts, 2, "Будь ласка вкажіть юзернейм. Приклад: /send_for_username @username")) return;
+                    if (!commandValidator.checkCom(chatId, commandParts, 2, "Будь ласка вкажіть юзернейм. Приклад: /send_for_username @username"))
+                        return;
                     userStateService.setCommandState(chatId, "sendForUsername " + commandParts[1]);
                 }
 

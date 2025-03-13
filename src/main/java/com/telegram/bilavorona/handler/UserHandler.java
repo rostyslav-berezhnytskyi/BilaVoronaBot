@@ -19,5 +19,5 @@ public interface UserHandler {
 
     void sendForUsername(Message msg, String username);
 
-
+    void savePhoneNumber(Message msg);
 }

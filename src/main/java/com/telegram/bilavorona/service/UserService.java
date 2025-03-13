@@ -23,4 +23,6 @@ public interface UserService {
     boolean deleteByUsername(String username);
 
     boolean updateUserRole(String username, Role newRole);
+
+    User saveUser(User user);
 }
