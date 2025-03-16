@@ -16,6 +16,7 @@ public class RoleValidatorImpl implements RoleValidator {
 
     private final static Role[] ADMIN_AND_OWNER = new Role[]{Role.ADMIN, Role.OWNER};
     private final static Role[] OWNER = new Role[]{Role.OWNER};
+    private final static Role[] BANNED = new Role[]{Role.BANNED};
 
     public RoleValidatorImpl(UserService userService, MyBotSender botSender) {
         this.userService = userService;
@@ -45,5 +46,10 @@ public class RoleValidatorImpl implements RoleValidator {
     @Override
     public boolean checkRoleOwner(long chatId) {
         return checkRoleCustom(chatId, OWNER);
+    }
+
+    @Override
+    public boolean checkRoleBanned(long chatId) {
+        return checkRoleCustom(chatId, BANNED);
     }
 }

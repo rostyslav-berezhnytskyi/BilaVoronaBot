@@ -57,8 +57,14 @@ public class UserServiceImpl implements UserService{
         return userRepository.findAll();
     }
 
+    @Override
     public List<User> findAllAdmins() {
         return userRepository.findAllAdmins();
+    }
+
+    @Override
+    public List<User> findAllBanned() {
+        return userRepository.findAllBanned();
     }
 
     @Override

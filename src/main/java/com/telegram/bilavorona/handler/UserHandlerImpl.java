@@ -50,19 +50,40 @@ public class UserHandlerImpl implements UserHandler {
         int count = 0;
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < allUsers.size(); i++) {
-            String userStr = "ID: " + allUsers.get(i).getChatId() +
-                    ", user_name: " + allUsers.get(i).getUserName() +
-                    ", first_name: " + (allUsers.get(i).getFirstName() == null ? "" : allUsers.get(i).getFirstName()) +
-                    ", last_name:  " + (allUsers.get(i).getLastName() == null ? "" : allUsers.get(i).getLastName())
-                    + "\n";
-            builder.append(userStr);
+            builder.append(formUserInfo(allUsers.get(i)));
             count++;
             if (count == 10 || i == allUsers.size() - 1) {
-                botSender.sendMessage(chatId, builder.toString());
+                botSender.sendMessage(chatId, builder.toString().trim());
                 count = 0;
                 builder = new StringBuilder();
             }
         }
+    }
+
+    @Override
+    public void getAllAdmins(long chatId) {
+        log.info("Called the command to get all the admins in chatId = {}", chatId);
+        if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
+
+        List<User> allAdmins = userService.findAllAdmins();
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < allAdmins.size(); i++) {
+            builder.append(formUserInfo(allAdmins.get(i)));
+        }
+        botSender.sendMessage(chatId, builder.toString().trim());
+    }
+
+    @Override
+    public void getAllBanned(long chatId) {
+        log.info("Called the command to get all the banned users in chatId = {}", chatId);
+        if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
+
+        List<User> allAdmins = userService.findAllBanned();
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < allAdmins.size(); i++) {
+            builder.append(formUserInfo(allAdmins.get(i)));
+        }
+        botSender.sendMessage(chatId, builder.toString().trim());
     }
 
     @Override
@@ -209,5 +230,15 @@ public class UserHandlerImpl implements UserHandler {
         return phoneNumber.matches("\\+?38\\d{10}") ||  // +380XXXXXXXXX
                 phoneNumber.matches("\\d{10}") ||       // 0XXXXXXXXX
                 phoneNumber.matches("\\d{3}-\\d{2}-\\d{2}");  // XXX-XX-XX
+    }
+
+    private String formUserInfo(User user) {
+        return  "ID: " + user.getChatId() +
+                ", user_name: " + (user.getUserName() == null ? "-" : user.getUserName()) +
+                ", first_name: " + (user.getFirstName() == null ? "-" : user.getFirstName()) +
+                ", last_name: " + (user.getLastName() == null ? "-" : user.getLastName()) +
+                ", role: " + user.getRole() +
+                ", phone: " + (user.getPhoneNumber() == null ? "-" : user.getPhoneNumber()) +
+                ", discount: " + user.getDiscount() + "%\n\n";
     }
 }

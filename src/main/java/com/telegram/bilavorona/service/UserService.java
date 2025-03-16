@@ -14,6 +14,8 @@ public interface UserService {
 
     List<User> findAllAdmins();
 
+    List<User> findAllBanned();
+
     Optional<User> findById(Long id);
 
     Optional<User> findByUsername(String username);

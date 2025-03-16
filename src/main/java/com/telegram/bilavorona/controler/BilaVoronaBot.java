@@ -112,6 +112,8 @@ public class BilaVoronaBot implements LongPollingBot {
 
                 // Users
                 case "/get_all_users" -> userHandler.getAllUsers(chatId);
+                case "/get_all_admins" -> userHandler.getAllAdmins(chatId);
+                case "/get_all_banned" -> userHandler.getAllBanned(chatId);
                 case "/delete_user" -> userHandler.deleteUser(chatId, commandParts);
                 case "/change_role" -> buttonsSender.sendRoleSelectionButtons(chatId, commandParts);
                 case "/send_for_all_user" -> userStateService.setCommandState(chatId, "sendForAllUsers");

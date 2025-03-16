@@ -6,4 +6,6 @@ public interface RoleValidator {
     boolean checkRoleOwnerOrAdmin(long chatId);
 
     boolean checkRoleOwner(long chatId);
+
+    boolean checkRoleBanned(long chatId);
 }

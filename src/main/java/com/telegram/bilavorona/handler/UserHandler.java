@@ -9,6 +9,10 @@ public interface UserHandler {
 
     void getAllUsers(long chatId);
 
+    void getAllAdmins(long chatId);
+
+    void getAllBanned(long chatId);
+
     void deleteUser(long chatId, String[] commandParts);
 
     void changeRole(long chatId, String username, Role role);

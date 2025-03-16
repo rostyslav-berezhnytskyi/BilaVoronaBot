@@ -114,7 +114,10 @@ public class ButtonsSenderImpl implements ButtonsSender {
         InlineKeyboardButton adminButton = new InlineKeyboardButton("ADMIN");
         adminButton.setCallbackData("change_role:" + username + ":ADMIN");
 
-        rows.add(List.of(userButton, adminButton));
+        InlineKeyboardButton bannedButton = new InlineKeyboardButton("BANNED");
+        bannedButton.setCallbackData("change_role:" + username + ":BANNED");
+
+        rows.add(List.of(userButton, adminButton, bannedButton));
         markup.setKeyboard(rows);
 
         botSender.sendInlineKeyboardMarkupMessage(chatId, "Виберіть нову роль для користувача " + username + ":", markup);

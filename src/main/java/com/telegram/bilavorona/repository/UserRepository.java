@@ -14,4 +14,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query(value = "SELECT * FROM users_data_table WHERE role IN ('OWNER','ADMIN')", nativeQuery = true)
     List<User> findAllAdmins();
+
+    @Query(value = "SELECT * FROM users_data_table WHERE role IS 'BANNED'", nativeQuery = true)
+    List<User> findAllBanned();
 }
