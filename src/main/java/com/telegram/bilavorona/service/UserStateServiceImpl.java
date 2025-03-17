@@ -2,6 +2,7 @@ package com.telegram.bilavorona.service;
 
 import com.telegram.bilavorona.util.CommandValidator;
 import com.telegram.bilavorona.util.MyBotSender;
+import com.telegram.bilavorona.util.RoleValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,15 +12,19 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class UserStateServiceImpl implements UserStateService{
     private final MyBotSender botSender;
+    private final RoleValidator roleValidator;
 
     private final Map<Long, String> userCommandState = new ConcurrentHashMap<>();
 
     @Autowired
-    public UserStateServiceImpl(MyBotSender botSender) {
+    public UserStateServiceImpl(MyBotSender botSender, RoleValidator roleValidator) {
         this.botSender = botSender;
+        this.roleValidator = roleValidator;
     }
 
-    public void setCommandState(Long chatId, String command) { // Save command state for a user
+    public void setCommandState(Long chatId, String command) {
+        if(command.equals("contactManager") && roleValidator.checkRoleBanned(chatId)) return;
+
         sendRespondToCommand(chatId, command);
         userCommandState.put(chatId, command);
     }

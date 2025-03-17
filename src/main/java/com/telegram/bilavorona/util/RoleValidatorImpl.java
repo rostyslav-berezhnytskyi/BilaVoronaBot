@@ -50,6 +50,14 @@ public class RoleValidatorImpl implements RoleValidator {
 
     @Override
     public boolean checkRoleBanned(long chatId) {
-        return checkRoleCustom(chatId, BANNED);
+        Optional<User> user = userService.findById(chatId);
+        if (user.isPresent() && user.get().getRole() == Role.BANNED) {
+            botSender.sendMessage(chatId, "На жаль у вас немає дозволу на виконання цієї дії");
+            log.info("Banned user with chatId = {} try to use command", chatId);
+            return true;
+        } else {
+            log.info("There is no user with such chatId = {}", chatId);
+            return false;
+        }
     }
 }

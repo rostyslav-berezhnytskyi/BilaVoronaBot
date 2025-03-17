@@ -76,7 +76,7 @@ public class ButtonsSenderImpl implements ButtonsSender {
         InlineKeyboardButton managerButton = new InlineKeyboardButton("\uD83D\uDCE9 Зв'язатися з менеджером");
         managerButton.setCallbackData("contactManager");  // Command to be executed
 
-        InlineKeyboardButton discountButton = new InlineKeyboardButton("Отримати знижку");
+        InlineKeyboardButton discountButton = new InlineKeyboardButton("\uD83D\uDCB8 Отримати знижку");
         discountButton.setCallbackData("get_discount");
 
         // Create a row for the buttons
