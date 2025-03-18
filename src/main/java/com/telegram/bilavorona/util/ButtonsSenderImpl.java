@@ -39,8 +39,9 @@ public class ButtonsSenderImpl implements ButtonsSender {
 
         KeyboardButton docsButton = new KeyboardButton("📄 Документація");
         KeyboardButton examplesButton = new KeyboardButton("📋 Приклади виконаних робіт");
-        KeyboardButton contactsButton = new KeyboardButton("\uD83D\uDCDE Наші контакти");
+//        KeyboardButton contactsButton = new KeyboardButton("\uD83D\uDCDE Наші контакти");
         KeyboardButton managerButton = new KeyboardButton("\uD83D\uDCE9 Зв'язатися з менеджером");
+        KeyboardButton homeButton = new KeyboardButton("\uD83C\uDFE0 Головна");
 
         // Creating rows for buttons
         KeyboardRow rowOne = new KeyboardRow();
@@ -48,8 +49,9 @@ public class ButtonsSenderImpl implements ButtonsSender {
         rowOne.add(examplesButton);
 
         KeyboardRow rowTwo = new KeyboardRow();
-        rowTwo.add(contactsButton);
+//        rowTwo.add(contactsButton);
         rowTwo.add(managerButton);
+        rowTwo.add(homeButton);
 
         List<KeyboardRow> keyboard = new ArrayList<>();
         keyboard.add(rowOne);
@@ -60,7 +62,7 @@ public class ButtonsSenderImpl implements ButtonsSender {
     }
 
     @Override
-    public void sendInlinePersistentButtons(Long chatId) {
+    public void sendHomeButtons(Long chatId) {
         InlineKeyboardMarkup inlineKeyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
 
@@ -79,6 +81,9 @@ public class ButtonsSenderImpl implements ButtonsSender {
         InlineKeyboardButton discountButton = new InlineKeyboardButton("\uD83D\uDCB8 Отримати знижку");
         discountButton.setCallbackData("get_discount");
 
+        InlineKeyboardButton homeButton = new InlineKeyboardButton("\uD83C\uDFE0 Головна");
+        homeButton.setCallbackData("home");
+
         // Create a row for the buttons
         List<InlineKeyboardButton> rowOne = new ArrayList<>();
         rowOne.add(docsButton);
@@ -88,11 +93,15 @@ public class ButtonsSenderImpl implements ButtonsSender {
         List<InlineKeyboardButton> rowTwo = new ArrayList<>();
         rowTwo.add(contactsButton);
         rowTwo.add(managerButton);
-        rowTwo.add(discountButton);
         rows.add(rowTwo);
 
+        List<InlineKeyboardButton> rowThree = new ArrayList<>();
+        rowThree.add(discountButton);
+        rowThree.add(homeButton);
+        rows.add(rowThree);
+
         inlineKeyboard.setKeyboard(rows);
-        botSender.sendInlineKeyboardMarkupMessage(chatId, "⬇️ Виберіть одну з базових дій:", inlineKeyboard);
+        botSender.sendInlineKeyboardMarkupMessage(chatId, "\uD83C\uDFE0 Головне меню:", inlineKeyboard);
     }
 
     @Override

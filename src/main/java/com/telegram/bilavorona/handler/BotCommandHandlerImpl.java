@@ -9,14 +9,8 @@ import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 
@@ -51,7 +45,7 @@ public class BotCommandHandlerImpl implements BotCommandHandler {
         String answer = isNewUser ? greetingForNewUser : greetingForOldUser;
         botSender.sendMessage(chatId, answer);
         buttonsSender.sendPersistentButtons(chatId);
-        buttonsSender.sendInlinePersistentButtons(chatId);
+        buttonsSender.sendHomeButtons(chatId);
     }
 
     @Override
@@ -114,7 +108,10 @@ public class BotCommandHandlerImpl implements BotCommandHandler {
         }
     }
 
-
+    @Override
+    public void home(long chatId) {
+        buttonsSender.sendHomeButtons(chatId);
+    }
 
     private String formTextMessage(User user, boolean usernameFlag, Message msg) {
         String textOfMessage = msg.hasText() ? "\uD83D\uDCE9 *Надіслане повідомлення:* \n" + msg.getText(): "\uD83D\uDCE9 *Надісланий файл:*";

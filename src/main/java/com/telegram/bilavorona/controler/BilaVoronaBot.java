@@ -69,6 +69,7 @@ public class BilaVoronaBot implements LongPollingBot {
                 case "change_role" -> userHandler.handleRoleSelection(update.getCallbackQuery());
                 case "contactManager" -> userStateService.setCommandState(chatId, "contactManager");
                 case "get_discount" -> userStateService.setCommandState(chatId, "waiting_for_phone");
+                case "home" -> botCommandHandler.home(chatId);
                 default -> botSender.sendMessage(chatId, "Невідома callback команда");
             }
             return;
@@ -109,6 +110,7 @@ public class BilaVoronaBot implements LongPollingBot {
                 case "/help" -> botCommandHandler.help(chatId);
                 case "/help_admin" -> botCommandHandler.helpAdmin(chatId);
                 case "/contact_manager", "\uD83D\uDCE9" -> userStateService.setCommandState(chatId, "contactManager");
+                case "/home", "\uD83C\uDFE0" -> botCommandHandler.home(chatId);
 
                 // Users
                 case "/get_all_users" -> userHandler.getAllUsers(chatId);
