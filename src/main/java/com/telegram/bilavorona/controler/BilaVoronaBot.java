@@ -1,6 +1,7 @@
 package com.telegram.bilavorona.controler;
 
 import com.telegram.bilavorona.config.BotConfig;
+import com.telegram.bilavorona.service.AIChatService;
 import com.telegram.bilavorona.service.UserStateService;
 import com.telegram.bilavorona.util.ButtonsSender;
 import com.telegram.bilavorona.util.CommandValidator;
@@ -22,10 +23,8 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 import org.telegram.telegrambots.meta.generics.LongPollingBot;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -38,9 +37,10 @@ public class BilaVoronaBot implements LongPollingBot {
     private final ButtonsSender buttonsSender;
     private final UserStateService userStateService;
     private final CommandValidator commandValidator;
+    private final AIChatService aiChatService;
 
     @Autowired
-    public BilaVoronaBot(BotConfig config, BotCommandHandler botCommandHandler, FileHandler fileCommandHandler, UserHandler userHandler, MyBotSender botSender, ButtonsSender buttonsSender, UserStateService userStateService, CommandValidator commandValidator) {
+    public BilaVoronaBot(BotConfig config, BotCommandHandler botCommandHandler, FileHandler fileCommandHandler, UserHandler userHandler, MyBotSender botSender, ButtonsSender buttonsSender, UserStateService userStateService, CommandValidator commandValidator, AIChatService aiChatService) {
         this.config = config;
         this.botCommandHandler = botCommandHandler;
         this.fileCommandHandler = fileCommandHandler;
@@ -49,6 +49,7 @@ public class BilaVoronaBot implements LongPollingBot {
         this.buttonsSender = buttonsSender;
         this.userStateService = userStateService;
         this.commandValidator = commandValidator;
+        this.aiChatService = aiChatService;
         createListOfCommands();
     }
 
@@ -139,7 +140,11 @@ public class BilaVoronaBot implements LongPollingBot {
                 case "/examples", "📋" -> fileCommandHandler.sendFilesByGroup(chatId, FileGroup.EXAMPLES);
                 case "/contacts", "\uD83D\uDCDE" -> botCommandHandler.contacts(chatId);
 
-                default -> botCommandHandler.defaultCom(chatId);
+                default -> {
+                    String aiResponse = aiChatService.getChatResponse(String.join("", commandParts));
+                    botSender.sendMessage(chatId, aiResponse);
+                }
+//                default -> botCommandHandler.defaultCom(chatId);
             }
         }
     }
