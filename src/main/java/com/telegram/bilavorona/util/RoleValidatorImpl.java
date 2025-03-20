@@ -33,6 +33,7 @@ public class RoleValidatorImpl implements RoleValidator {
             log.info("Try to delete user command without ADMIN or OWNER role in chatId = {}", chatId);
             return false;
         } else {
+            botSender.sendMessage(chatId, "Такого користувача немає в базі даних");
             log.info("There is no user with such chatId = {}", chatId);
             return false;
         }
@@ -55,8 +56,11 @@ public class RoleValidatorImpl implements RoleValidator {
             botSender.sendMessage(chatId, "На жаль у вас немає дозволу на виконання цієї дії");
             log.info("Banned user with chatId = {} try to use command", chatId);
             return true;
-        } else {
+        } else if (user.isEmpty()) {
+            botSender.sendMessage(chatId, "Такого користувача немає в базі даних");
             log.info("There is no user with such chatId = {}", chatId);
+            return true;
+        } else {
             return false;
         }
     }

@@ -39,23 +39,29 @@ public class ButtonsSenderImpl implements ButtonsSender {
 
         KeyboardButton docsButton = new KeyboardButton("📄 Документація");
         KeyboardButton examplesButton = new KeyboardButton("📋 Приклади виконаних робіт");
-//        KeyboardButton contactsButton = new KeyboardButton("\uD83D\uDCDE Наші контакти");
+
+        KeyboardButton aiAssistantButton = new KeyboardButton("\uD83E\uDD16 Зв'язатися з AI асистентом");
         KeyboardButton managerButton = new KeyboardButton("\uD83D\uDCE9 Зв'язатися з менеджером");
+
+        KeyboardButton contactsButton = new KeyboardButton("\uD83D\uDCDE Наші контакти");
         KeyboardButton homeButton = new KeyboardButton("\uD83C\uDFE0 Головна");
 
-        // Creating rows for buttons
         KeyboardRow rowOne = new KeyboardRow();
         rowOne.add(docsButton);
         rowOne.add(examplesButton);
 
         KeyboardRow rowTwo = new KeyboardRow();
-//        rowTwo.add(contactsButton);
+        rowTwo.add(aiAssistantButton);
         rowTwo.add(managerButton);
-        rowTwo.add(homeButton);
+
+        KeyboardRow rowThree = new KeyboardRow();
+        rowThree.add(contactsButton);
+        rowThree.add(homeButton);
 
         List<KeyboardRow> keyboard = new ArrayList<>();
         keyboard.add(rowOne);
         keyboard.add(rowTwo);
+        keyboard.add(rowThree);
         keyboardMarkup.setKeyboard(keyboard);
 
         botSender.sendKeyboardMarkupMessage(chatId, TextConstants.START_TEXT, keyboardMarkup);
@@ -78,6 +84,9 @@ public class ButtonsSenderImpl implements ButtonsSender {
         InlineKeyboardButton managerButton = new InlineKeyboardButton("\uD83D\uDCE9 Зв'язатися з менеджером");
         managerButton.setCallbackData("contactManager");  // Command to be executed
 
+        InlineKeyboardButton aiAssistantButton = new InlineKeyboardButton("\uD83E\uDD16 Зв'язатися з AI асистентом");
+        aiAssistantButton.setCallbackData("contactAIAssistant");  // Command to be executed
+
         InlineKeyboardButton discountButton = new InlineKeyboardButton("\uD83D\uDCB8 Отримати знижку");
         discountButton.setCallbackData("get_discount");
 
@@ -91,14 +100,18 @@ public class ButtonsSenderImpl implements ButtonsSender {
         rows.add(rowOne);
 
         List<InlineKeyboardButton> rowTwo = new ArrayList<>();
-        rowTwo.add(contactsButton);
+        rowTwo.add(aiAssistantButton);
         rowTwo.add(managerButton);
         rows.add(rowTwo);
 
         List<InlineKeyboardButton> rowThree = new ArrayList<>();
         rowThree.add(discountButton);
-        rowThree.add(homeButton);
+        rowThree.add(contactsButton);
         rows.add(rowThree);
+
+        List<InlineKeyboardButton> rowFour = new ArrayList<>();
+        rowFour.add(homeButton);
+        rows.add(rowFour);
 
         inlineKeyboard.setKeyboard(rows);
         botSender.sendInlineKeyboardMarkupMessage(chatId, "\uD83C\uDFE0 Головне меню:", inlineKeyboard);

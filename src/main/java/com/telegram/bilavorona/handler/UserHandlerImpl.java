@@ -227,9 +227,11 @@ public class UserHandlerImpl implements UserHandler {
     }
 
     private boolean isValidPhoneNumber(String phoneNumber) {
-        return phoneNumber.matches("\\+?38\\d{10}") ||  // +380XXXXXXXXX
-                phoneNumber.matches("\\d{10}") ||       // 0XXXXXXXXX
-                phoneNumber.matches("\\d{3}-\\d{2}-\\d{2}");  // XXX-XX-XX
+        if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
+            return false; // Handle null or empty input
+        }
+        phoneNumber = phoneNumber.trim(); // Trim leading/trailing whitespace
+        return phoneNumber.matches("^(\\+?380|380|38|0)?\\s?(\\d{3})\\s?-?\\s?(\\d{3})\\s?-?\\s?(\\d{2})\\s?-?\\s?(\\d{2})$");
     }
 
     private String formUserInfo(User user) {

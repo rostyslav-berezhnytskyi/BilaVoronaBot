@@ -28,26 +28,16 @@ public class AIChatServiceImpl implements AIChatService{
 
     private final RestTemplate restTemplate;
     private final ChatHistoryService chatHistoryService;
-    private final RoleValidator roleValidator;
-    private final UserService userService;
 
     @Autowired
-    public AIChatServiceImpl(RestTemplate restTemplate, ChatHistoryService chatHistoryService, RoleValidator roleValidator, UserService userService) {
+    public AIChatServiceImpl(RestTemplate restTemplate, ChatHistoryService chatHistoryService) {
         this.restTemplate = restTemplate;
         this.chatHistoryService = chatHistoryService;
-        this.roleValidator = roleValidator;
-        this.userService = userService;
     }
 
     @Override
-    public String getChatResponse(Long userId, String userMessage) {
-        if(roleValidator.checkRoleBanned(userId)) return "✋";
-
-        Optional<User> userOptional = userService.findById(userId);
-        if(userOptional.isEmpty()) return "Такого користувача немає в базі даних";
-        User user = userOptional.get();
-
-        List<ChatHistory> chatHistory = chatHistoryService.getLastMessages(userId, 10);
+    public String getChatResponse(User user, String userMessage) {
+        List<ChatHistory> chatHistory = chatHistoryService.getLastMessages(user.getChatId(), 10);
 
         try {
             String jsonRequest = buildRequestPayload(TextConstants.AI_BOT_PROMPT, chatHistory, userMessage);
