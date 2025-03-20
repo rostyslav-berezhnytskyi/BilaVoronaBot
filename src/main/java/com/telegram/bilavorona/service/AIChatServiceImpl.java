@@ -2,6 +2,7 @@ package com.telegram.bilavorona.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.telegram.bilavorona.util.TextConstants;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -21,9 +22,14 @@ public class AIChatServiceImpl implements AIChatService{
     @Value("${openai.api.key}")
     private String apiKey;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
     private final String apiUrl = "https://api.openai.com/v1/chat/completions"; // OpenAI endpoint
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Autowired
+    public AIChatServiceImpl(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
 
     @Override
     public String getChatResponse(String userMessage) {
