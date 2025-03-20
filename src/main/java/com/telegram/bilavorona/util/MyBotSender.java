@@ -27,6 +27,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.File;
 import java.util.List;
 
 @Slf4j
@@ -98,6 +99,14 @@ public class MyBotSender extends DefaultAbsSender {
         executeDocument(document);
     }
 
+    public void sendDocumentFile(Long chatId, File file, String caption) {
+        SendDocument document = new SendDocument();
+        document.setChatId(chatId);
+        document.setDocument(new InputFile(file));
+        document.setCaption(caption);
+        executeDocument(document);
+    }
+
     public void sendPhoto(Long chatId, String fileId, String caption) {
         SendPhoto photo = new SendPhoto();
         photo.setChatId(chatId);
@@ -113,6 +122,7 @@ public class MyBotSender extends DefaultAbsSender {
         video.setCaption(caption);
         executeVideo(video);
     }
+
 
     private void executeDocument(SendDocument document) {
         try {
