@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,4 +28,6 @@ public class User {
     private int discount = 0;    // Default discount is 0%
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ChatHistory> chatHistory = new ArrayList<>();
+    private int aiMessageCount = 0;
+    private LocalDate firstAiMessageDate;
 }

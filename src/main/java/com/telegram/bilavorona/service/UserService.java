@@ -27,4 +27,6 @@ public interface UserService {
     boolean updateUserRole(String username, Role newRole);
 
     User saveUser(User user);
+
+    boolean updateAiMessageCount(Long chatId);
 }

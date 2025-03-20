@@ -10,6 +10,7 @@ import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Message;
 
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -102,6 +103,26 @@ public class UserServiceImpl implements UserService{
         if(userOpt.isPresent()) {
             User user = userOpt.get();
             user.setRole(newRole);
+            userRepository.save(user);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean updateAiMessageCount(Long chatId) {
+        Optional<User> userOpt = userRepository.findById(chatId);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            LocalDate today = LocalDate.now();
+
+            if (user.getFirstAiMessageDate() == null || !user.getFirstAiMessageDate().equals(today)) {
+                user.setFirstAiMessageDate(today);
+                user.setAiMessageCount(1);
+            } else {
+                user.setAiMessageCount(user.getAiMessageCount() + 1);
+            }
             userRepository.save(user);
             return true;
         } else {
