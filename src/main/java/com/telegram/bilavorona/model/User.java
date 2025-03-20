@@ -1,12 +1,12 @@
 package com.telegram.bilavorona.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity(name = "usersDataTable")
 @Getter
@@ -25,4 +25,6 @@ public class User {
     private String languageCode;
     private String phoneNumber;
     private int discount = 0;    // Default discount is 0%
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ChatHistory> chatHistory = new ArrayList<>();
 }

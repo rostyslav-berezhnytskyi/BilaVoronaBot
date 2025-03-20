@@ -141,7 +141,7 @@ public class BilaVoronaBot implements LongPollingBot {
                 case "/contacts", "\uD83D\uDCDE" -> botCommandHandler.contacts(chatId);
 
                 default -> {
-                    String aiResponse = aiChatService.getChatResponse(String.join("", commandParts));
+                    String aiResponse = aiChatService.getChatResponse(chatId, String.join(" ", commandParts).trim());
                     botSender.sendMessage(chatId, aiResponse);
                 }
 //                default -> botCommandHandler.defaultCom(chatId);
