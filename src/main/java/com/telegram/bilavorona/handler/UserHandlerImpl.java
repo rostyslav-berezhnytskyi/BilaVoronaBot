@@ -1,5 +1,6 @@
 package com.telegram.bilavorona.handler;
 
+import com.telegram.bilavorona.service.ReportService;
 import com.telegram.bilavorona.service.UserStateService;
 import com.telegram.bilavorona.util.CommandValidator;
 import com.telegram.bilavorona.util.MyBotSender;
@@ -13,6 +14,8 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,14 +28,16 @@ public class UserHandlerImpl implements UserHandler {
     private final MyBotSender botSender;
     private final CommandValidator comValidator;
     private final UserStateService userStateService;
+    private final ReportService reportService;
 
     @Autowired
-    public UserHandlerImpl(UserService userService, RoleValidator roleValidator, MyBotSender botSender, CommandValidator comValidator, UserStateService userStateService) {
+    public UserHandlerImpl(UserService userService, RoleValidator roleValidator, MyBotSender botSender, CommandValidator comValidator, UserStateService userStateService, ReportService reportService) {
         this.userService = userService;
         this.roleValidator = roleValidator;
         this.botSender = botSender;
         this.comValidator = comValidator;
         this.userStateService = userStateService;
+        this.reportService = reportService;
     }
 
     @Override
@@ -46,17 +51,17 @@ public class UserHandlerImpl implements UserHandler {
         log.info("Called the command to get all the users in chatId = {}", chatId);
         if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
 
-        List<User> allUsers = userService.findAll();
-        int count = 0;
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < allUsers.size(); i++) {
-            builder.append(formUserInfo(allUsers.get(i)));
-            count++;
-            if (count == 10 || i == allUsers.size() - 1) {
-                botSender.sendMessage(chatId, builder.toString().trim());
-                count = 0;
-                builder = new StringBuilder();
+        try {
+            File reportFile = reportService.generateAllUsersReport();
+            if(reportFile != null && reportFile.exists()) {
+                botSender.sendDocumentFile(chatId, reportFile, "Файл з усіма користувачами боту");
+            } else {
+                log.error("Report file with all user doesnt exist when try to use the command to get all the users in chatId = {}", chatId);
+                botSender.sendMessage(chatId, "Сталась помилка в отриманні списку всіх користувачів боту");
             }
+        } catch (IOException e) {
+            log.error("Got exception {} the command to get all the users in chatId = {}", e, chatId);
+            botSender.sendMessage(chatId, "Сталась помилка в отриманні списку всіх користувачів боту");
         }
     }
 

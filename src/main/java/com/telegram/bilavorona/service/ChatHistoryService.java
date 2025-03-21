@@ -12,5 +12,5 @@ public interface ChatHistoryService {
 
     void saveChatMessage(User user, String role, String message);
 
-    File generateChatHistoryReport() throws IOException;
+    void deleteOldChatHistory();
 }

@@ -1,15 +1,12 @@
 package com.telegram.bilavorona.controler;
 
 import com.telegram.bilavorona.config.BotConfig;
-import com.telegram.bilavorona.handler.AIHandler;
+import com.telegram.bilavorona.handler.*;
 import com.telegram.bilavorona.service.AIChatService;
 import com.telegram.bilavorona.service.UserStateService;
 import com.telegram.bilavorona.util.ButtonsSender;
 import com.telegram.bilavorona.util.CommandValidator;
 import com.telegram.bilavorona.util.MyBotSender;
-import com.telegram.bilavorona.handler.BotCommandHandler;
-import com.telegram.bilavorona.handler.FileHandler;
-import com.telegram.bilavorona.handler.UserHandler;
 import com.telegram.bilavorona.model.FileGroup;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,9 +36,10 @@ public class BilaVoronaBot implements LongPollingBot {
     private final UserStateService userStateService;
     private final CommandValidator commandValidator;
     private final AIHandler aiHandler;
+    private final ReportHandler reportHandler;
 
     @Autowired
-    public BilaVoronaBot(BotConfig config, BotCommandHandler botCommandHandler, FileHandler fileCommandHandler, UserHandler userHandler, MyBotSender botSender, ButtonsSender buttonsSender, UserStateService userStateService, CommandValidator commandValidator, AIHandler aiHandler) {
+    public BilaVoronaBot(BotConfig config, BotCommandHandler botCommandHandler, FileHandler fileCommandHandler, UserHandler userHandler, MyBotSender botSender, ButtonsSender buttonsSender, UserStateService userStateService, CommandValidator commandValidator, AIHandler aiHandler, ReportHandler reportHandler) {
         this.config = config;
         this.botCommandHandler = botCommandHandler;
         this.fileCommandHandler = fileCommandHandler;
@@ -51,6 +49,7 @@ public class BilaVoronaBot implements LongPollingBot {
         this.userStateService = userStateService;
         this.commandValidator = commandValidator;
         this.aiHandler = aiHandler;
+        this.reportHandler = reportHandler;
         createListOfCommands();
     }
 
@@ -128,6 +127,9 @@ public class BilaVoronaBot implements LongPollingBot {
                         return;
                     userStateService.setCommandState(chatId, "sendForUsername " + commandParts[1]);
                 }
+
+                //Reports
+                case "/get_chat_history_report" -> reportHandler.sendChatHistoryReportToManager(chatId);
 
                 // Files
                 case "/get_all_files" -> fileCommandHandler.getAllFiles(chatId);
