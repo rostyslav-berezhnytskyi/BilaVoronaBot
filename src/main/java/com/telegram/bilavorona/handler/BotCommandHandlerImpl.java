@@ -109,6 +109,12 @@ public class BotCommandHandlerImpl implements BotCommandHandler {
     }
 
     @Override
+    public void frequentQuestions(long chatId) {
+        log.info("Send frequent questions answer to user chatId {}", chatId);
+        botSender.sendMessage(chatId, TextConstants.FREQUENT_QUESTIONS);
+    }
+
+    @Override
     public void home(long chatId) {
         buttonsSender.sendHomeButtons(chatId);
     }

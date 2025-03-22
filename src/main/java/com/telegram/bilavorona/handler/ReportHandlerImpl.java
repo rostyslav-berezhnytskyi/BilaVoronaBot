@@ -72,4 +72,47 @@ public class ReportHandlerImpl implements ReportHandler {
         }
     }
 
+    @Override
+    public void sendUserStatisticsForWeekToManager(long chatId) {
+        if (!roleValidator.checkRoleOwnerOrAdmin(chatId)) return;
+
+        File reportFile = generateUserStatisticsReport();
+        if (reportFile == null) {
+            botSender.sendMessage(chatId, "Не зміг відправити файл репортом");
+            return;
+        }
+        botSender.sendDocumentFile(chatId, reportFile, "📊 Статистика використання бота користувачами за минулий тиждень");
+    }
+
+    @Override
+    public void sendUserStatisticsForWeekToAllManagers() {
+        File reportFile = generateUserStatisticsReport();
+        if (reportFile == null) return;
+
+        List<User> admins = userService.findAllAdmins();
+        for (User manager : admins) {
+            try {
+                botSender.sendDocumentFile(manager.getChatId(), reportFile, "📊 Статистика використання бота користувачами за минулий тиждень");
+            } catch (Exception e) {
+                log.error("Cant send message to manager with id {}", manager.getChatId());
+            }
+
+        }
+    }
+
+    private File generateUserStatisticsReport() {
+        try {
+            File reportFile = reportService.generateUserStatisticsReport();
+            if (reportFile != null && reportFile.exists()) {
+                return reportFile;
+            } else {
+                log.warn("User statistics report file was not generated.");
+                return null;
+            }
+        } catch (IOException e) {
+            log.error("Failed to generate user statistics report", e);
+            return null;
+        }
+    }
+
 }

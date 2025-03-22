@@ -69,4 +69,9 @@ public class UserStatisticsServiceImpl implements UserStatisticsService {
         LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
         return userActivityRepository.countMonthlyUniqueUsers(startOfMonth, LocalDate.now());
     }
+
+    @Override
+    public int countDailyUniqueUsers(LocalDate date) {
+        return userActivityRepository.countDailyUniqueUsers(date);
+    }
 }

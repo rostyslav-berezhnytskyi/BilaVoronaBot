@@ -7,4 +7,6 @@ public interface ReportService {
     File generateChatHistoryReport() throws IOException;
 
     File generateAllUsersReport() throws IOException;
+
+    File generateUserStatisticsReport() throws IOException;
 }

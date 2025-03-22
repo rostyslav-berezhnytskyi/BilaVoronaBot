@@ -1,5 +1,7 @@
 package com.telegram.bilavorona.service;
 
+import java.time.LocalDate;
+
 public interface UserStatisticsService {
 
     void recordUserActivity(Long userId);
@@ -9,4 +11,6 @@ public interface UserStatisticsService {
     int getWeeklyUniqueUsers();
 
     int getMonthlyUniqueUsers();
+
+    int countDailyUniqueUsers(LocalDate date);
 }

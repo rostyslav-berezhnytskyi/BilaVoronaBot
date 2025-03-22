@@ -8,6 +8,7 @@ import com.telegram.bilavorona.util.ButtonsSender;
 import com.telegram.bilavorona.util.CommandValidator;
 import com.telegram.bilavorona.util.MyBotSender;
 import com.telegram.bilavorona.model.FileGroup;
+import com.telegram.bilavorona.util.TextConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -72,6 +73,7 @@ public class BilaVoronaBot implements LongPollingBot {
                 case "contactManager" -> userStateService.setCommandState(chatId, "contactManager");
                 case "contactAIAssistant" -> aiHandler.sendAIResponse(chatId, "Користувач бота нажав кнопку зв'язатись з АІ асистентом і хоче з тобою поговорити");
                 case "get_discount" -> userStateService.setCommandState(chatId, "waiting_for_phone");
+                case "fq" -> botCommandHandler.frequentQuestions(chatId);
                 case "home" -> botCommandHandler.home(chatId);
                 default -> botSender.sendMessage(chatId, "Невідома callback команда");
             }
@@ -115,6 +117,7 @@ public class BilaVoronaBot implements LongPollingBot {
                 case "/help_admin" -> botCommandHandler.helpAdmin(chatId);
                 case "/contact_ai_assistant", "\uD83E\uDD16" -> aiHandler.sendAIResponse(chatId, "Користувач бота нажав кнопку зв'язатись з АІ асистентом і хоче з тобою поговорити");
                 case "/contact_manager", "\uD83D\uDCE9" -> userStateService.setCommandState(chatId, "contactManager");
+                case "/fq" -> botCommandHandler.frequentQuestions(chatId);
                 case "/home", "\uD83C\uDFE0" -> botCommandHandler.home(chatId);
 
                 // Users
@@ -132,6 +135,7 @@ public class BilaVoronaBot implements LongPollingBot {
 
                 //Reports
                 case "/get_chat_history_report" -> reportHandler.sendChatHistoryReportToManager(chatId);
+                case "/get_user_statistics_for_week_report" -> reportHandler.sendUserStatisticsForWeekToManager(chatId);
                 case "/get_user_statistics_for_day" -> userStatisticsHandler.getDailyUniqueUsers(chatId);
                 case "/get_user_statistics_for_week" -> userStatisticsHandler.getWeeklyUniqueUsers(chatId);
                 case "/get_user_statistics_for_month" -> userStatisticsHandler.getMonthlyUniqueUsers(chatId);
@@ -161,6 +165,7 @@ public class BilaVoronaBot implements LongPollingBot {
         listOfCommands.add(new BotCommand("/help", "Отримати інформацію по роботі з ботом"));
         listOfCommands.add(new BotCommand("/contact_manager", "Зв'язатися з нашим менеджером"));
         listOfCommands.add(new BotCommand("/contact_ai_assistant", "Зв'язатися з нашим AI асистентом, який працює 24/7"));
+        listOfCommands.add(new BotCommand("/fq", "Відповіді на поширені запитання"));
         // 📄 Documentation and Examples
         listOfCommands.add(new BotCommand("/documentation", "Отримати документи з розділу Документація"));
         listOfCommands.add(new BotCommand("/examples", "Отримати приклади виконаних робіт"));

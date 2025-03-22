@@ -35,17 +35,23 @@ public class Scheduler {
     }
 
     @Scheduled(cron = "0 0 23 * * ?") // Every day at 23:00
-    public void sendDailyReport() {
+    public void sendUserStatisticsDailyReport() {
         userStatisticsHandler.sendUserStatisticsForDayToAllManagers();
     }
 
     @Scheduled(cron = "0 0 23 ? * SUN") // Every Sunday at 23:00
-    public void sendWeeklyReport() {
+    public void sendUserStatisticsWeeklyReport() {
         userStatisticsHandler.sendUserStatisticsForWeekToAllManagers();
     }
 
     @Scheduled(cron = "0 0 23 L * ?") // Last day of the month at 23:00
-    public void sendMonthlyReport() {
+    public void sendUserStatisticsMonthlyReport() {
         userStatisticsHandler.sendUserStatisticsForMonthToAllManagers();
+    }
+
+    @Scheduled(cron = "0 0 23 ? * SUN") // Every Monday at 10:00 AM
+    public void sendUserStatisticsReport() {
+        reportHandler.sendUserStatisticsForWeekToAllManagers();
+        log.info("Send chat history report");
     }
 }

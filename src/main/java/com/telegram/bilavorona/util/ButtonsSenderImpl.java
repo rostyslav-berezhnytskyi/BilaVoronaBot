@@ -90,6 +90,9 @@ public class ButtonsSenderImpl implements ButtonsSender {
         InlineKeyboardButton discountButton = new InlineKeyboardButton("\uD83D\uDCB8 Отримати знижку");
         discountButton.setCallbackData("get_discount");
 
+        InlineKeyboardButton fqButton = new InlineKeyboardButton("\uD83D\uDEE0\uFE0F Поширенні запитання");
+        fqButton.setCallbackData("fq");
+
         InlineKeyboardButton homeButton = new InlineKeyboardButton("\uD83C\uDFE0 Головна");
         homeButton.setCallbackData("home");
 
@@ -110,6 +113,7 @@ public class ButtonsSenderImpl implements ButtonsSender {
         rows.add(rowThree);
 
         List<InlineKeyboardButton> rowFour = new ArrayList<>();
+        rowFour.add(fqButton);
         rowFour.add(homeButton);
         rows.add(rowFour);
 

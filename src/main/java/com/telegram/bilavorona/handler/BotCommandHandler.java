@@ -17,5 +17,7 @@ public interface BotCommandHandler {
 
     void sendToManager(Message msg);
 
+    void frequentQuestions(long chatId);
+
     void home(long chatId);
 }

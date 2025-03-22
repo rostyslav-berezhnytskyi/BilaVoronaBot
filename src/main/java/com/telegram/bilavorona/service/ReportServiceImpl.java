@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -22,11 +23,13 @@ import java.util.List;
 public class ReportServiceImpl implements ReportService {
     private final UserService userService;
     private final ChatHistoryRepository chatHistoryRepository;
+    private final UserStatisticsService userStatisticsService;
 
     @Autowired
-    public ReportServiceImpl(UserService userService, ChatHistoryRepository chatHistoryRepository) {
+    public ReportServiceImpl(UserService userService, ChatHistoryRepository chatHistoryRepository, UserStatisticsService userStatisticsService) {
         this.userService = userService;
         this.chatHistoryRepository = chatHistoryRepository;
+        this.userStatisticsService = userStatisticsService;
     }
 
     @Override
@@ -113,6 +116,39 @@ public class ReportServiceImpl implements ReportService {
         }
 
         File reportFile = new File("AllBotUsersBy" + LocalDate.now() + ".xlsx");
+        try (FileOutputStream fileOut = new FileOutputStream(reportFile)) {
+            workbook.write(fileOut);
+        } finally {
+            workbook.close();
+        }
+
+        return reportFile;
+    }
+
+    @Override
+    public File generateUserStatisticsReport() throws IOException {
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("User Statistics for week");
+
+        Row headerRow = sheet.createRow(0);
+        String[] headers = {"Date", "Unique Users"};
+
+        for (int i = 0; i < headers.length; i++) {
+            headerRow.createCell(i).setCellValue(headers[i]);
+        }
+
+        LocalDate startOfWeek = LocalDate.now().with(DayOfWeek.MONDAY);
+        LocalDate today = LocalDate.now();
+        int rowNum = 1;
+
+        for (LocalDate date = startOfWeek; !date.isAfter(today); date = date.plusDays(1)) {
+            int count = userStatisticsService.countDailyUniqueUsers(date);
+            Row row = sheet.createRow(rowNum++);
+            row.createCell(0).setCellValue(date.toString());
+            row.createCell(1).setCellValue(count);
+        }
+
+        File reportFile = new File("UserStatistics" + today + ".xlsx");
         try (FileOutputStream fileOut = new FileOutputStream(reportFile)) {
             workbook.write(fileOut);
         } finally {
