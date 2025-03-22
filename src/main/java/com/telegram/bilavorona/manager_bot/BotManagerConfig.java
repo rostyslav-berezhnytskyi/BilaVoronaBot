@@ -1,4 +1,4 @@
-package com.telegram.bilavorona.bila_vorona_manager;
+package com.telegram.bilavorona.manager_bot;
 
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Value;

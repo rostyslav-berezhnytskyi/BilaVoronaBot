@@ -1,4 +1,4 @@
-package com.telegram.bilavorona.bila_vorona_manager;
+package com.telegram.bilavorona.manager_bot;
 
 import org.telegram.telegrambots.meta.api.objects.Message;
 

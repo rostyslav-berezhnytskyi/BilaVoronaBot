@@ -1,7 +1,7 @@
 package com.telegram.bilavorona.config;
 
-import com.telegram.bilavorona.controler.BilaVoronaBot;
-import com.telegram.bilavorona.bila_vorona_manager.BilaVoronaManagerBot;
+import com.telegram.bilavorona.controler.TelegramBot;
+import com.telegram.bilavorona.manager_bot.TelegramManagerBot;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -12,12 +12,12 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 @Slf4j
 @Component
 public class BotInitializer {
-    private final BilaVoronaBot bot;
-    private final BilaVoronaManagerBot botManager;
+    private final TelegramBot bot;
+    private final TelegramManagerBot botManager;
     private final TelegramBotsApi telegramBotsApi;
 
     @Autowired
-    public BotInitializer(BilaVoronaBot bot, BilaVoronaManagerBot botManager) throws TelegramApiException{
+    public BotInitializer(TelegramBot bot, TelegramManagerBot botManager) throws TelegramApiException{
         this.bot = bot;
         this.botManager = botManager;
         this.telegramBotsApi = new TelegramBotsApi(DefaultBotSession.class);

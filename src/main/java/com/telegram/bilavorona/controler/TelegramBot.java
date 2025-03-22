@@ -3,12 +3,10 @@ package com.telegram.bilavorona.controler;
 import com.telegram.bilavorona.config.BotConfig;
 import com.telegram.bilavorona.handler.*;
 import com.telegram.bilavorona.service.UserStateService;
-import com.telegram.bilavorona.service.UserStatisticsService;
 import com.telegram.bilavorona.util.ButtonsSender;
 import com.telegram.bilavorona.util.CommandValidator;
 import com.telegram.bilavorona.util.MyBotSender;
 import com.telegram.bilavorona.model.FileGroup;
-import com.telegram.bilavorona.util.TextConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -26,7 +24,7 @@ import java.util.*;
 
 @Slf4j
 @Component
-public class BilaVoronaBot implements LongPollingBot {
+public class TelegramBot implements LongPollingBot {
     private final BotConfig config;
     private final BotCommandHandler botCommandHandler;
     private final FileHandler fileCommandHandler;
@@ -40,7 +38,7 @@ public class BilaVoronaBot implements LongPollingBot {
     private final UserStatisticsHandler userStatisticsHandler;
 
     @Autowired
-    public BilaVoronaBot(BotConfig config, BotCommandHandler botCommandHandler, FileHandler fileCommandHandler, UserHandler userHandler, MyBotSender botSender, ButtonsSender buttonsSender, UserStateService userStateService, CommandValidator commandValidator, AIHandler aiHandler, ReportHandler reportHandler, UserStatisticsHandler userStatisticsHandler) {
+    public TelegramBot(BotConfig config, BotCommandHandler botCommandHandler, FileHandler fileCommandHandler, UserHandler userHandler, MyBotSender botSender, ButtonsSender buttonsSender, UserStateService userStateService, CommandValidator commandValidator, AIHandler aiHandler, ReportHandler reportHandler, UserStatisticsHandler userStatisticsHandler) {
         this.config = config;
         this.botCommandHandler = botCommandHandler;
         this.fileCommandHandler = fileCommandHandler;

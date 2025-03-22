@@ -1,19 +1,9 @@
 package com.telegram.bilavorona.util;
 
-import com.telegram.bilavorona.bila_vorona_manager.BotManagerConfig;
-import com.telegram.bilavorona.bila_vorona_manager.ManagerBotSender;
 import com.telegram.bilavorona.config.BotConfig;
-import com.telegram.bilavorona.model.User;
-import com.telegram.bilavorona.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
 import org.telegram.telegrambots.bots.DefaultAbsSender;
 import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
@@ -28,7 +18,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.File;
-import java.util.List;
 
 @Slf4j
 @Component

@@ -1,4 +1,4 @@
-package com.telegram.bilavorona.bila_vorona_manager;
+package com.telegram.bilavorona.manager_bot;
 
 import com.telegram.bilavorona.handler.BotCommandHandler;
 import com.telegram.bilavorona.handler.FileHandler;
@@ -24,24 +24,20 @@ import java.util.List;
 
 @Slf4j
 @Component
-public class BilaVoronaManagerBot implements LongPollingBot {
+public class TelegramManagerBot implements LongPollingBot {
     private final BotManagerConfig managerBotConfig;
-    private final BotCommandHandler botCommandHandler;
     private final FileHandler fileCommandHandler;
     private final UserHandler userHandler;
     private final ManagerBotSender managerBotSender;
-    private final ButtonsSender buttonsSender;
     private final UserStateService userStateService;
     private final ManagerCommandHandler managerCommandHandler;
 
     @Autowired
-    public BilaVoronaManagerBot(BotManagerConfig managerBotConfig, BotCommandHandler botCommandHandler, FileHandler fileCommandHandler, UserHandler userHandler, ManagerBotSender managerBotSender, ButtonsSender buttonsSender, UserStateService userStateService, ManagerCommandHandler managerCommandHandler) {
+    public TelegramManagerBot(BotManagerConfig managerBotConfig, FileHandler fileCommandHandler, UserHandler userHandler, ManagerBotSender managerBotSender, UserStateService userStateService, ManagerCommandHandler managerCommandHandler) {
         this.managerBotConfig = managerBotConfig;
-        this.botCommandHandler = botCommandHandler;
         this.fileCommandHandler = fileCommandHandler;
         this.userHandler = userHandler;
         this.managerBotSender = managerBotSender;
-        this.buttonsSender = buttonsSender;
         this.userStateService = userStateService;
         this.managerCommandHandler = managerCommandHandler;
         createListOfCommands();

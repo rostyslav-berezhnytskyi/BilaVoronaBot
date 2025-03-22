@@ -1,4 +1,4 @@
-package com.telegram.bilavorona.bila_vorona_manager;
+package com.telegram.bilavorona.manager_bot;
 
 import com.telegram.bilavorona.util.RoleValidator;
 import lombok.extern.slf4j.Slf4j;

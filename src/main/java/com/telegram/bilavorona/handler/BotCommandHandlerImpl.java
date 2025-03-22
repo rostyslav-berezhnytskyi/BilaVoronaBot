@@ -1,6 +1,6 @@
 package com.telegram.bilavorona.handler;
 
-import com.telegram.bilavorona.bila_vorona_manager.ManagerBotSender;
+import com.telegram.bilavorona.manager_bot.ManagerBotSender;
 import com.telegram.bilavorona.model.User;
 import com.telegram.bilavorona.service.UserStateService;
 import com.telegram.bilavorona.util.*;
