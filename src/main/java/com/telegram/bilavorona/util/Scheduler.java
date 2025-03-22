@@ -1,8 +1,8 @@
 package com.telegram.bilavorona.util;
 
 import com.telegram.bilavorona.handler.ReportHandler;
+import com.telegram.bilavorona.handler.UserStatisticsHandler;
 import com.telegram.bilavorona.service.ChatHistoryService;
-import com.telegram.bilavorona.service.ReportService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -13,11 +13,13 @@ import org.springframework.stereotype.Component;
 public class Scheduler {
     private final ChatHistoryService chatHistoryService;
     private final ReportHandler reportHandler;
+    private final UserStatisticsHandler userStatisticsHandler;
 
     @Autowired
-    public Scheduler(ChatHistoryService chatHistoryService, ReportHandler reportHandler) {
+    public Scheduler(ChatHistoryService chatHistoryService, ReportHandler reportHandler, UserStatisticsHandler userStatisticsHandler) {
         this.chatHistoryService = chatHistoryService;
         this.reportHandler = reportHandler;
+        this.userStatisticsHandler = userStatisticsHandler;
     }
 
     @Scheduled(cron = "0 0 1 * * ?") // Runs daily at 01:00
@@ -30,5 +32,20 @@ public class Scheduler {
     public void sendChatHistoryReport() {
         reportHandler.sendChatHistoryReportToAllManagers();
         log.info("Send chat history report");
+    }
+
+    @Scheduled(cron = "0 0 23 * * ?") // Every day at 23:00
+    public void sendDailyReport() {
+        userStatisticsHandler.sendUserStatisticsForDayToAllManagers();
+    }
+
+    @Scheduled(cron = "0 0 23 ? * SUN") // Every Sunday at 23:00
+    public void sendWeeklyReport() {
+        userStatisticsHandler.sendUserStatisticsForWeekToAllManagers();
+    }
+
+    @Scheduled(cron = "0 0 23 L * ?") // Last day of the month at 23:00
+    public void sendMonthlyReport() {
+        userStatisticsHandler.sendUserStatisticsForMonthToAllManagers();
     }
 }

@@ -2,8 +2,8 @@ package com.telegram.bilavorona.controler;
 
 import com.telegram.bilavorona.config.BotConfig;
 import com.telegram.bilavorona.handler.*;
-import com.telegram.bilavorona.service.AIChatService;
 import com.telegram.bilavorona.service.UserStateService;
+import com.telegram.bilavorona.service.UserStatisticsService;
 import com.telegram.bilavorona.util.ButtonsSender;
 import com.telegram.bilavorona.util.CommandValidator;
 import com.telegram.bilavorona.util.MyBotSender;
@@ -22,7 +22,6 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 import org.telegram.telegrambots.meta.generics.LongPollingBot;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -37,9 +36,10 @@ public class BilaVoronaBot implements LongPollingBot {
     private final CommandValidator commandValidator;
     private final AIHandler aiHandler;
     private final ReportHandler reportHandler;
+    private final UserStatisticsHandler userStatisticsHandler;
 
     @Autowired
-    public BilaVoronaBot(BotConfig config, BotCommandHandler botCommandHandler, FileHandler fileCommandHandler, UserHandler userHandler, MyBotSender botSender, ButtonsSender buttonsSender, UserStateService userStateService, CommandValidator commandValidator, AIHandler aiHandler, ReportHandler reportHandler) {
+    public BilaVoronaBot(BotConfig config, BotCommandHandler botCommandHandler, FileHandler fileCommandHandler, UserHandler userHandler, MyBotSender botSender, ButtonsSender buttonsSender, UserStateService userStateService, CommandValidator commandValidator, AIHandler aiHandler, ReportHandler reportHandler, UserStatisticsHandler userStatisticsHandler) {
         this.config = config;
         this.botCommandHandler = botCommandHandler;
         this.fileCommandHandler = fileCommandHandler;
@@ -50,6 +50,7 @@ public class BilaVoronaBot implements LongPollingBot {
         this.commandValidator = commandValidator;
         this.aiHandler = aiHandler;
         this.reportHandler = reportHandler;
+        this.userStatisticsHandler = userStatisticsHandler;
         createListOfCommands();
     }
 
@@ -80,6 +81,7 @@ public class BilaVoronaBot implements LongPollingBot {
         Message msg = update.getMessage();
         if (msg == null) return;  // Check for null to avoid NullPointerException
         Long chatId = msg.getChatId();
+        userStatisticsHandler.recordUserActivity(chatId);
 
         if (msg.hasText() && msg.getText().equals("/exit")) {
             botCommandHandler.exit(chatId);
@@ -130,6 +132,9 @@ public class BilaVoronaBot implements LongPollingBot {
 
                 //Reports
                 case "/get_chat_history_report" -> reportHandler.sendChatHistoryReportToManager(chatId);
+                case "/get_user_statistics_for_day" -> userStatisticsHandler.getDailyUniqueUsers(chatId);
+                case "/get_user_statistics_for_week" -> userStatisticsHandler.getWeeklyUniqueUsers(chatId);
+                case "/get_user_statistics_for_month" -> userStatisticsHandler.getMonthlyUniqueUsers(chatId);
 
                 // Files
                 case "/get_all_files" -> fileCommandHandler.getAllFiles(chatId);
