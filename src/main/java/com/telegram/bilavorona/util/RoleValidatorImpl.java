@@ -16,7 +16,6 @@ public class RoleValidatorImpl implements RoleValidator {
 
     private final static Role[] ADMIN_AND_OWNER = new Role[]{Role.ADMIN, Role.OWNER};
     private final static Role[] OWNER = new Role[]{Role.OWNER};
-    private final static Role[] BANNED = new Role[]{Role.BANNED};
 
     public RoleValidatorImpl(UserService userService, MyBotSender botSender) {
         this.userService = userService;
@@ -30,7 +29,7 @@ public class RoleValidatorImpl implements RoleValidator {
                 if (user.get().getRole() == role) return true;
             }
             botSender.sendMessage(chatId, "У вас немає дозволу на таку команду");
-            log.info("Try to delete user command without ADMIN or OWNER role in chatId = {}", chatId);
+            log.info("Try to use command without ADMIN or OWNER role in chatId = {}", chatId);
             return false;
         } else {
             botSender.sendMessage(chatId, "Такого користувача немає в базі даних");
@@ -61,6 +60,21 @@ public class RoleValidatorImpl implements RoleValidator {
             log.info("There is no user with such chatId = {}", chatId);
             return true;
         } else {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean checkRoleOwnerOrAdminWithoutMessage(long chatId) {
+        Optional<User> user = userService.findById(chatId);
+        if (user.isPresent()) {
+            for (Role role : ADMIN_AND_OWNER) {
+                if (user.get().getRole() == role) return true;
+            }
+            log.info("Try to delete user command without ADMIN or OWNER role in chatId = {}", chatId);
+            return false;
+        } else {
+            log.info("There is no user with such chatId = {}", chatId);
             return false;
         }
     }

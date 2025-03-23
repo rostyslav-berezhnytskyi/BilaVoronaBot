@@ -1,0 +1,29 @@
+services:
+  bot:
+    build: .
+    container_name: armor_flex_bot
+    env_file:
+      - armor_flex.env
+    depends_on:
+      - mysql
+    restart: always
+    volumes:
+      - ./logs:/app/logs
+
+  mysql:
+    image: mysql:8
+    container_name: armor_flex_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: armor_flex_bot
+      MYSQL_USER: root
+      MYSQL_PASSWORD: m1a2abramsTUSK
+#    ports:
+#      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+networks:
+  my-network:
+volumes:
+  mysql_data:

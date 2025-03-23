@@ -38,7 +38,7 @@ public class AIHandlerImpl implements AIHandler {
         Optional<User> userOptional = userService.findById(chatId);
         User user = userOptional.get();
 
-        if(roleValidator.checkRoleOwnerOrAdmin(chatId)) {
+        if(roleValidator.checkRoleOwnerOrAdminWithoutMessage(chatId)) {
             if(!aiMessageLimitValidator.checkAIMessageLimit(user, 100)) return;
         }
 

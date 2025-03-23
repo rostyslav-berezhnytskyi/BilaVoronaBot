@@ -53,7 +53,7 @@ build/
 *.swo
 
 # Environment files
-.env
+*.env
 *.sh
 
 # Lombok generated files
