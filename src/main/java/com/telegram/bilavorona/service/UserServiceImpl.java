@@ -87,7 +87,7 @@ public class UserServiceImpl implements UserService{
 
     @Override
     public boolean deleteByUsername(String username) {
-        Optional<User> userOpt = userRepository.findByUserName(username);
+        Optional<User> userOpt = findByUsername(username);
         if(userOpt.isPresent()) {
             Long chatId = userOpt.get().getChatId();
             userRepository.deleteById(chatId);
@@ -99,7 +99,7 @@ public class UserServiceImpl implements UserService{
 
     @Override
     public boolean updateUserRole(String username, Role newRole) {
-        Optional<User> userOpt = userRepository.findByUserName(username);
+        Optional<User> userOpt = findByUsername(username);
         if(userOpt.isPresent()) {
             User user = userOpt.get();
             user.setRole(newRole);

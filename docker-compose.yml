@@ -1,28 +1,37 @@
 services:
   bot:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: armor_flex
     container_name: armor_flex_bot
     env_file:
-      - armor_flex.env
+      - ${ENV_FILE:-.env}
     depends_on:
       - mysql
     restart: always
+    ports:
+      - "8080:8080"
+    networks:
+      - my-network
     volumes:
       - ./logs:/app/logs
 
   mysql:
-    image: mysql:8
+    image: mysql:latest
     container_name: armor_flex_db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD_DOCKER}
       MYSQL_DATABASE: armor_flex_bot
-      MYSQL_USER: root
-      MYSQL_PASSWORD: m1a2abramsTUSK
-#    ports:
-#      - "3307:3306"
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    networks:
+      - my-network
 networks:
   my-network:
 volumes:
