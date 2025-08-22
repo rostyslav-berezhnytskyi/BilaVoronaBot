@@ -261,7 +261,7 @@ public class FileHandlerImpl implements FileHandler {
             botSender.sendMessage(uploadedBy, "✅ Файл успішно збережено у базі даних!");
         } catch (TelegramApiException | IOException e) {
             log.error("Помилка завантаження файлу: {}", e.getMessage());
-            botSender.sendMessage(uploadedBy, "❌ Не вдалося зберегти файл.");
+            botSender.sendMessage(uploadedBy, "❌ Не вдалося зберегти файл. Помилка: " + e);
         }
     }
 
